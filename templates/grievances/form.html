@@ -1,0 +1,552 @@
+{% extends 'grievances/base.html' %}
+
+{% block header %}
+    {% if is_edit %}Edit Grievance #{{ form.instance.id }}{% else %}Submit New Grievance{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Success Notification Popup (Non-blocking Toast on Same Page) -->
+{% if messages %}
+    <div id="toastContainer" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none">
+        {% for message in messages %}
+            {% if message.tags == 'success' %}
+            <div id="toast-{{ forloop.counter }}" class="pointer-events-auto bg-white border border-emerald-200 shadow-2xl rounded-2xl p-4 flex items-center gap-3.5 max-w-sm transition-all duration-300 transform translate-y-0 opacity-100 ring-1 ring-black/5">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg flex-shrink-0 shadow-sm shadow-emerald-500/10">
+                    <i class="fas fa-circle-check"></i>
+                </div>
+                <div class="flex-1 pr-2">
+                    <h4 class="text-sm font-bold text-gray-900 tracking-tight">Successfully Added!</h4>
+                    <p class="text-xs text-gray-500 mt-0.5 leading-snug">{{ message }}</p>
+                </div>
+                <button type="button" onclick="dismissToast('toast-{{ forloop.counter }}')" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition">
+                    <i class="fas fa-xmark text-sm"></i>
+                </button>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <script>
+        function dismissToast(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-12px) scale(0.95)';
+                setTimeout(() => el.remove(), 250);
+            }
+        }
+        // Auto-dismiss after 4 seconds
+        setTimeout(() => {
+            const toasts = document.querySelectorAll('#toastContainer > div');
+            toasts.forEach(t => dismissToast(t.id));
+        }, 4000);
+    </script>
+{% endif %}
+
+<div class="max-w-5xl mx-auto pb-12">
+    <!-- Top Action Breadcrumb Bar -->
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1">
+                <a href="{% url 'dashboard' %}" class="hover:underline">Dashboard</a>
+                <span>/</span>
+                <a href="{% url 'grievance_list' %}" class="hover:underline">Grievances</a>
+                <span>/</span>
+                <span class="text-gray-400">{% if is_edit %}Edit #{{ form.instance.id }}{% else %}New Entry{% endif %}</span>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">
+                {% if is_edit %}Update Grievance Record{% else %}Create Grievance{% endif %}
+            </h2>
+            <p class="text-sm text-gray-500 mt-1">Please ensure all required details are accurately recorded for operational compliance.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'grievance_list' %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-sm transition">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span>Back to Records</span>
+            </a>
+            {% if is_edit %}
+                <span class="px-3 py-1.5 text-xs font-bold rounded-xl uppercase tracking-wider
+                    {% if form.instance.current_status == 'open' %}bg-red-100 text-red-700 border border-red-200
+                    {% elif form.instance.current_status == 'closed' %}bg-emerald-100 text-emerald-700 border border-emerald-200
+                    {% elif form.instance.current_status == 'hold' %}bg-amber-100 text-amber-700 border border-amber-200
+                    {% elif form.instance.current_status == 'extension' %}bg-purple-100 text-purple-700 border border-purple-200
+                    {% else %}bg-gray-100 text-gray-700{% endif %}">
+                    Status: {{ form.instance.get_current_status_display }}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Form Body -->
+    <form method="POST" action="" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-3">
+                <i class="fas fa-triangle-exclamation text-lg"></i>
+                <div>{{ form.non_field_errors.0 }}</div>
+            </div>
+        {% endif %}
+
+        <!-- Unified Form Container -->
+        <div class="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 overflow-hidden relative z-20">
+            
+            <!-- Section 1: Employee Information -->
+            <div class="p-5 md:p-10">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shadow-sm">
+                        <i class="fas fa-id-badge"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 tracking-tight">Employee Information</h3>
+                        <p class="text-sm text-slate-500 mt-0.5">Identity and organizational placement of the reporting staff</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Emp ID -->
+                    <div>
+                        <label for="{{ form.emp_id.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-hashtag text-slate-400"></i> Emp ID <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.emp_id }}
+                        {% if form.emp_id.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.emp_id.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Emp Name -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.emp_name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-user text-slate-400"></i> Emp Name <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.emp_name }}
+                        {% if form.emp_name.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.emp_name.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Designation -->
+                    <div>
+                        <label for="{{ form.designation.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-briefcase text-slate-400"></i> Designation <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.designation }}
+                        {% if form.designation.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.designation.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Department -->
+                    <div>
+                        <label for="{{ form.department.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-building text-slate-400"></i> Department <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.department }}
+                        {% if form.department.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.department.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Section -->
+                    <div>
+                        <label for="{{ form.section.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-layer-group text-slate-400"></i> Section <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.section }}
+                        {% if form.section.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.section.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- Section 2: Store & Channel Context -->
+            <div class="p-5 md:p-10 bg-slate-50/50">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-sm">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 tracking-tight">Store & Reception Details</h3>
+                        <p class="text-sm text-slate-500 mt-0.5">Originating store, entry channel, and intake metadata</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-50">
+                    <!-- Open Date -->
+                    <div>
+                        <label for="{{ form.open_date.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-calendar-plus text-slate-400"></i> Open Date <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.open_date }}
+                        {% if form.open_date.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.open_date.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Store -->
+                    <div class="relative z-[60]">
+                        <label for="{{ form.store.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-location-dot text-slate-400"></i> Store Name <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.store }}
+                        {% if form.store.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.store.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Enquiry Type -->
+                    <div class="relative z-[50]">
+                        <label for="{{ form.enquiry_type.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-tags text-slate-400"></i> Enquiry Type <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.enquiry_type }}
+                        {% if form.enquiry_type.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.enquiry_type.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Enquiry Received By -->
+                    <div>
+                        <label for="{{ form.enquiry_received_by.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-headset text-slate-400"></i> Enquiry Received By <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.enquiry_received_by }}
+                        {% if form.enquiry_received_by.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.enquiry_received_by.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- Section 3: Grievance Facts & Current Status -->
+            <div class="p-5 md:p-10">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-sm">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 tracking-tight">Incident Details & Status</h3>
+                        <p class="text-sm text-slate-500 mt-0.5">Narrative description of the concern and present workflow phase</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Enquiry Details -->
+                    <div>
+                        <label for="{{ form.enquiry_details.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-align-left text-slate-400"></i> Enquiry Details <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.enquiry_details }}
+                        {% if form.enquiry_details.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.enquiry_details.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Status Selector -->
+                    <div class="max-w-md relative z-[40]">
+                        <label for="{{ form.current_status.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-arrows-spin text-slate-400"></i> Current Status <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.current_status }}
+                        {% if form.current_status.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.current_status.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- Section 4: Escalation & Resolution Timeline -->
+            <div class="p-5 md:p-10 bg-slate-50/50">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-sm">
+                        <i class="fas fa-timeline"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 tracking-tight">Escalation & Resolution Tracking</h3>
+                        <p class="text-sm text-slate-500 mt-0.5">Tier assignment, closure timeline, and calculated resolution days</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- First Level -->
+                    <div>
+                        <label for="{{ form.first_level.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-user-check text-slate-400"></i> 1st Level
+                        </label>
+                        {{ form.first_level }}
+                        {% if form.first_level.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.first_level.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Second Level -->
+                    <div>
+                        <label for="{{ form.second_level.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-user-shield text-slate-400"></i> 2nd Level
+                        </label>
+                        {{ form.second_level }}
+                        {% if form.second_level.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.second_level.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Closed Date -->
+                    <div>
+                        <label for="{{ form.closed_date.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-calendar-check text-slate-400"></i> Closed Date
+                        </label>
+                        {{ form.closed_date }}
+                        {% if form.closed_date.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.closed_date.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <!-- Period Days -->
+                    <div>
+                        <label for="{{ form.period_days.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-stopwatch text-slate-400"></i> Period Days
+                        </label>
+                        {{ form.period_days }}
+                        {% if form.period_days.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.period_days.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="px-5 md:px-8 py-5 md:py-6 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                    <i class="fas fa-circle-info text-blue-500"></i>
+                    <span>Fields marked with an asterisk (<span class="text-red-500 font-bold">*</span>) are mandatory.</span>
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <a href="{% url 'grievance_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-bold transition shadow-sm">
+                        Cancel
+                    </a>
+                    <button type="reset" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-bold transition shadow-sm flex items-center gap-2">
+                        <i class="fas fa-rotate-left text-xs"></i>
+                        <span>Reset</span>
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold shadow-lg shadow-blue-600/30 transition flex items-center gap-2">
+                        <i class="fas {% if is_edit %}fa-check{% else %}fa-paper-plane{% endif %} text-xs"></i>
+                        <span>{% if is_edit %}Save Changes{% else %}Submit Grievance{% endif %}</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    /**
+     * Initializes a custom dropdown that ALWAYS opens downward (below the input)
+     * and provides real-time search filtering.
+     */
+    function initDownwardDropdown(selectId, searchPlaceholder) {
+        const select = document.getElementById(selectId);
+        if (!select || select.dataset.downwardInitialized) return;
+        select.dataset.downwardInitialized = 'true';
+
+        // Keep native select in DOM for Django form submission, but hide it visually
+        select.style.display = 'none';
+
+        // Wrapper container
+        const wrapper = document.createElement('div');
+        wrapper.className = 'relative w-full custom-downward-select-wrapper';
+
+        // Trigger button styled to match the Tailwind design
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 transition hover:bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-sm text-left';
+
+        const triggerText = document.createElement('span');
+        triggerText.className = 'truncate pr-2';
+
+        const chevron = document.createElement('i');
+        chevron.className = 'fas fa-chevron-down text-gray-400 text-xs transition-transform duration-200 flex-shrink-0';
+
+        trigger.appendChild(triggerText);
+        trigger.appendChild(chevron);
+        wrapper.appendChild(trigger);
+
+        // Dropdown Menu - STRICTLY positioned BELOW with 'top-full mt-1.5'
+        const menu = document.createElement('div');
+        menu.className = 'custom-menu hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden ring-1 ring-black/5';
+
+        // Search bar
+        const searchWrapper = document.createElement('div');
+        searchWrapper.className = 'p-2.5 border-b border-gray-100 bg-gray-50/70';
+        searchWrapper.innerHTML = `
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-2.5 text-xs text-gray-400"></i>
+                <input type="text" class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-gray-800" placeholder="${searchPlaceholder || 'Type to search...'}">
+            </div>
+        `;
+        const searchInput = searchWrapper.querySelector('input');
+        menu.appendChild(searchWrapper);
+
+        // Options list container
+        const listContainer = document.createElement('div');
+        listContainer.className = 'max-h-56 overflow-y-auto py-1 divide-y divide-gray-50';
+        menu.appendChild(listContainer);
+
+        // Empty state message
+        const noResults = document.createElement('div');
+        noResults.className = 'hidden px-4 py-3 text-xs text-gray-400 text-center italic';
+        noResults.textContent = 'No matching options found';
+        listContainer.appendChild(noResults);
+
+        function updateTriggerText() {
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                triggerText.textContent = selectedOption.text;
+                triggerText.classList.remove('text-gray-400');
+                triggerText.classList.add('text-gray-900', 'font-medium');
+            } else {
+                triggerText.textContent = (selectedOption ? selectedOption.text : '') || 'Select an option';
+                triggerText.classList.add('text-gray-400');
+                triggerText.classList.remove('text-gray-900', 'font-medium');
+            }
+        }
+
+        function renderOptions() {
+            // Remove previous items except noResults
+            Array.from(listContainer.children).forEach(child => {
+                if (child !== noResults) child.remove();
+            });
+
+            Array.from(select.options).forEach((opt, index) => {
+                const item = document.createElement('div');
+                const isSelected = select.selectedIndex === index;
+                const isEmptyLabel = !opt.value;
+
+                item.className = `px-4 py-2 text-sm cursor-pointer flex items-center justify-between transition ${
+                    isSelected
+                        ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                        : isEmptyLabel
+                            ? 'text-gray-400 hover:bg-gray-50'
+                            : 'text-gray-700 hover:bg-indigo-50/60 hover:text-indigo-700'
+                }`;
+                item.dataset.value = opt.value;
+                item.dataset.text = opt.text.toLowerCase();
+
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = opt.text;
+                item.appendChild(labelSpan);
+
+                if (isSelected && opt.value) {
+                    const check = document.createElement('i');
+                    check.className = 'fas fa-check text-xs text-indigo-600';
+                    item.appendChild(check);
+                }
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    select.selectedIndex = index;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    updateTriggerText();
+                    renderOptions();
+                    closeMenu();
+                });
+
+                listContainer.insertBefore(item, noResults);
+            });
+        }
+
+        function filterOptions(query) {
+            query = query.trim().toLowerCase();
+            let visibleCount = 0;
+            const items = listContainer.querySelectorAll('[data-value]');
+            items.forEach(item => {
+                const text = item.dataset.text || '';
+                if (!query || text.includes(query)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (visibleCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+
+        function openMenu() {
+            // Close all other dropdowns
+            document.querySelectorAll('.custom-downward-select-wrapper').forEach(w => {
+                const m = w.querySelector('.custom-menu');
+                if (m && m !== menu) {
+                    m.classList.add('hidden');
+                    w.style.zIndex = '';
+                    w.querySelector('i.fa-chevron-down')?.classList.remove('rotate-180');
+                    w.querySelector('button')?.classList.remove('border-indigo-500', 'ring-2', 'ring-indigo-500/20', 'bg-white');
+                }
+            });
+
+            // Bring this wrapper to the top
+            wrapper.style.zIndex = '60';
+            menu.classList.remove('hidden');
+            chevron.classList.add('rotate-180');
+            trigger.classList.add('border-indigo-500', 'ring-2', 'ring-indigo-500/20', 'bg-white');
+
+            searchInput.value = '';
+            filterOptions('');
+            setTimeout(() => searchInput.focus(), 50);
+        }
+
+        function closeMenu() {
+            menu.classList.add('hidden');
+            wrapper.style.zIndex = '';
+            chevron.classList.remove('rotate-180');
+            trigger.classList.remove('border-indigo-500', 'ring-2', 'ring-indigo-500/20', 'bg-white');
+        }
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (menu.classList.contains('hidden')) {
+                openMenu();
+            } else {
+                closeMenu();
+            }
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            filterOptions(e.target.value);
+        });
+
+        searchInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeMenu();
+                trigger.focus();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+                closeMenu();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+                closeMenu();
+                trigger.focus();
+            }
+        });
+
+        if (select.form) {
+            select.form.addEventListener('reset', () => {
+                setTimeout(() => {
+                    updateTriggerText();
+                    renderOptions();
+                }, 50);
+            });
+        }
+
+        wrapper.appendChild(menu);
+        select.parentNode.insertBefore(wrapper, select.nextSibling);
+
+        updateTriggerText();
+        renderOptions();
+    }
+
+    // Initialize for Store and Enquiry Type dropdowns (which have 16+ and 34+ options)
+    initDownwardDropdown('id_store', 'Search store / location...');
+    initDownwardDropdown('id_enquiry_type', 'Search enquiry category...');
+    initDownwardDropdown('id_current_status', 'Search status...');
+});
+</script>
+{% endblock %}
+

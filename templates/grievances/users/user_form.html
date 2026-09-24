@@ -1,0 +1,304 @@
+{% extends 'grievances/base.html' %}
+
+{% block title %}
+    {% if is_approving %}Approve & Assign Stores - {{ target_user.username }}{% elif is_edit %}Edit User - {{ target_user.username }}{% else %}Add New User{% endif %} - Grievance Tracker
+{% endblock %}
+
+{% block header %}
+    {% if is_approving %}
+        Approve & Assign Stores: <span class="text-emerald-600 font-mono">{{ target_user.username }}</span>
+    {% elif is_edit %}
+        Edit User: <span class="text-indigo-600 font-mono">{{ target_user.username }}</span>
+    {% else %}
+        Create New User
+    {% endif %}
+{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'user_list' %}" class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition">
+    <i class="fas fa-arrow-left text-xs"></i>
+    <span>Back to User List</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+        <!-- Special Banner if in Approval Mode -->
+        {% if is_approving %}
+        <div class="bg-emerald-50 border-b border-emerald-200 p-5 flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-lg flex-shrink-0 mt-0.5">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-emerald-900">User Approval & Store Assignment</h4>
+                <p class="text-xs text-emerald-700 mt-1 leading-relaxed">
+                    You are approving access for <span class="font-bold">{{ target_user.username }}</span> ({{ target_user.email|default:"No email" }}). Please assign their <strong>System Role</strong> and select the <strong>Stores</strong> this user is authorized to view and submit grievances for.
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <!-- Standard Form Header -->
+        <div class="px-8 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-base">
+                    <i class="fas {% if is_edit %}fa-user-pen{% else %}fa-user-plus{% endif %}"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-800">
+                        {% if is_edit %}Update User Profile, Role & Stores{% else %}Add Employee / Administrator Account{% endif %}
+                    </h3>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                        Configure user access, system role, and assigned stores
+                    </p>
+                </div>
+            </div>
+
+            {% if is_edit and target_user %}
+            <span class="px-3 py-1 rounded-full text-xs font-semibold {% if target_user.profile.approval_status == 'approved' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% elif target_user.profile.approval_status == 'rejected' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-amber-50 text-amber-800 border border-amber-200{% endif %}">
+                Current: {{ target_user.profile.get_approval_status_display }}
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <form method="POST" class="p-8 space-y-6">
+            {% csrf_token %}
+
+            <!-- Section 1: Account Information -->
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-4 flex items-center gap-2">
+                    <i class="fas fa-id-card"></i> Account Information
+                </h4>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% if not is_edit %}
+                    <!-- Username (Only when creating) -->
+                    <div>
+                        <label for="{{ form.username.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Username / System Login <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <!-- Username Display -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Username / Login ID
+                        </label>
+                        <input type="text" value="{{ target_user.username }}" disabled 
+                            class="block w-full rounded-xl border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm text-gray-500 cursor-not-allowed">
+                    </div>
+                    {% endif %}
+
+                    <!-- Employee ID -->
+                    <div>
+                        <label for="{{ form.emp_id.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Employee ID / Code
+                        </label>
+                        {{ form.emp_id }}
+                        {% if form.emp_id.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.emp_id.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- First Name -->
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            First Name
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Last Name -->
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Last Name
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.email.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Email Address
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-100">
+
+            <!-- Section 2: Role & Approval Status -->
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-4 flex items-center gap-2">
+                    <i class="fas fa-shield-halved"></i> Role & Access State
+                </h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Role -->
+                    <div>
+                        <label for="{{ form.role.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            System Role <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.role }}
+                        {% if form.role.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.role.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-[11px] text-gray-400 mt-1">Admin has full access to all stores and user management.</p>
+                    </div>
+
+                    <!-- Approval Status -->
+                    <div>
+                        <label for="{{ form.approval_status.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Approval Status <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.approval_status }}
+                        {% if form.approval_status.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.approval_status.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-[11px] text-gray-400 mt-1">Only 'Approved' users can sign into the system.</p>
+                    </div>
+
+                    <!-- Checkboxes: Active & Approved -->
+                    <div class="md:col-span-2 flex items-center gap-8 pt-2">
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            {{ form.is_active }}
+                            <span class="text-xs font-medium text-gray-700 select-none">Account Active</span>
+                        </label>
+
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            {{ form.is_approved }}
+                            <span class="text-xs font-medium text-gray-700 select-none">Mark Approved</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-100">
+
+            <!-- Section 3: Multiple Stores Assignment -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-600 flex items-center gap-2">
+                        <i class="fas fa-store"></i> Store Mapping (Assign Multiple Stores)
+                    </h4>
+                    <div class="flex items-center gap-2 text-xs">
+                        <button type="button" onclick="toggleAllStores(true)" class="text-indigo-600 hover:text-indigo-800 font-semibold transition">
+                            Select All
+                        </button>
+                        <span class="text-gray-300">|</span>
+                        <button type="button" onclick="toggleAllStores(false)" class="text-gray-500 hover:text-gray-700 font-semibold transition">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+                <p class="text-[11px] text-gray-500 mb-4">
+                    The user will only be able to create grievances and view records for the stores selected below. (Admins have access to all stores).
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1 bg-gray-50/50 rounded-2xl border border-gray-200/80 p-3">
+                    {% for checkbox in form.stores %}
+                    <label class="flex items-center gap-2.5 p-2.5 rounded-xl border border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition select-none">
+                        {{ checkbox.tag }}
+                        <span class="text-xs font-semibold text-gray-800">{{ checkbox.choice_label }}</span>
+                    </label>
+                    {% empty %}
+                    <div class="col-span-3 py-6 text-center text-gray-400 text-xs">
+                        No active stores found in the database. Please add stores in the admin panel first.
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if form.stores.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ form.stores.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <hr class="border-gray-100">
+
+            <!-- Section 4: Security & Password -->
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-600 mb-4 flex items-center gap-2">
+                    <i class="fas fa-key"></i> Security & Authentication
+                </h4>
+
+                {% if is_edit %}
+                    <div>
+                        <label for="{{ form.new_password.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            Set New Password (Optional)
+                        </label>
+                        {{ form.new_password }}
+                        {% if form.new_password.errors %}
+                            <p class="text-xs text-red-600 mt-1">{{ form.new_password.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-[11px] text-gray-400 mt-1">{{ form.new_password.help_text }}</p>
+                    </div>
+                {% else %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ form.password.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Local Password (Optional)
+                            </label>
+                            {{ form.password }}
+                            {% if form.password.errors %}
+                                <p class="text-xs text-red-600 mt-1">{{ form.password.errors.0 }}</p>
+                            {% endif %}
+                            <p class="text-[11px] text-gray-400 mt-1">{{ form.password.help_text }}</p>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.confirm_password.id_for_label }}" class="block text-xs font-semibold text-gray-700 mb-1.5">
+                                Confirm Password
+                            </label>
+                            {{ form.confirm_password }}
+                            {% if form.confirm_password.errors %}
+                                <p class="text-xs text-red-600 mt-1">{{ form.confirm_password.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                <a href="{% url 'user_list' %}" class="px-5 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2.5 {% if is_approving %}bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 shadow-emerald-600/30{% else %}bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-indigo-600/30{% endif %} text-white text-xs font-semibold rounded-xl shadow-md transition inline-flex items-center gap-2">
+                    <i class="fas {% if is_approving %}fa-user-check{% else %}fa-check{% endif %} text-xs"></i>
+                    <span>
+                        {% if is_approving %}
+                            Save & Approve User
+                        {% elif is_edit %}
+                            Save Changes
+                        {% else %}
+                            Create User
+                        {% endif %}
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleAllStores(checked) {
+    const checkboxes = document.querySelectorAll('input[name="stores"]');
+    checkboxes.forEach(cb => cb.checked = checked);
+}
+</script>
+{% endblock %}
