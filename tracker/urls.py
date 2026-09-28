@@ -8,5 +8,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/login/', RedirectView.as_view(pattern_name='login', permanent=False)),
     path('', include('grievances.urls')),
+    path('food-waste/', include('food_waste.urls')),
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
+

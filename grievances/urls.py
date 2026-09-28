@@ -10,6 +10,7 @@ urlpatterns = [
     path('create/', views.grievance_create_view, name='grievance_create'),
     path('edit/<int:pk>/', views.grievance_update_view, name='grievance_update'),
     path('delete/<int:pk>/', views.grievance_delete_view, name='grievance_delete'),
+    path('reports/grievance/', views.grievance_report_view, name='grievance_report'),
     
     # User Management (Admin Only)
     path('users/', views.user_list_view, name='user_list'),

@@ -1,0 +1,827 @@
+{% extends 'grievances/base.html' %}
+
+{% block title %}{% if is_edit %}Edit Food Waste Entry #{{ form.instance.id }}{% else %}Add Food Waste Entry{% endif %} - Food Waste Tracker{% endblock %}
+
+{% block header %}
+    {% if is_edit %}Edit Food Waste #{{ form.instance.id }}{% else %}Add Food Waste{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Toast Notifications -->
+{% if messages %}
+    <div id="toastContainer" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none">
+        {% for message in messages %}
+            <div id="toast-{{ forloop.counter }}" class="pointer-events-auto bg-white border border-emerald-200 shadow-2xl rounded-2xl p-4 flex items-center gap-3.5 max-w-sm transition-all duration-300 transform translate-y-0 opacity-100 ring-1 ring-black/5">
+                <div class="w-10 h-10 rounded-xl {% if message.tags == 'success' %}bg-emerald-100 text-emerald-600{% elif message.tags == 'error' %}bg-red-100 text-red-600{% else %}bg-blue-100 text-blue-600{% endif %} flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
+                    <i class="fas {% if message.tags == 'success' %}fa-circle-check{% elif message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+                </div>
+                <div class="flex-1 pr-2">
+                    <h4 class="text-sm font-bold text-gray-900 tracking-tight">{% if message.tags == 'success' %}Success!{% elif message.tags == 'error' %}Attention Required{% else %}Notice{% endif %}</h4>
+                    <p class="text-xs text-gray-500 mt-0.5 leading-snug">{{ message }}</p>
+                </div>
+                <button type="button" onclick="dismissToast('toast-{{ forloop.counter }}')" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition">
+                    <i class="fas fa-xmark text-sm"></i>
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function dismissToast(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-12px) scale(0.95)';
+                setTimeout(() => el.remove(), 250);
+            }
+        }
+        setTimeout(() => {
+            const toasts = document.querySelectorAll('#toastContainer > div');
+            toasts.forEach(t => dismissToast(t.id));
+        }, 4500);
+    </script>
+{% endif %}
+
+<div class="max-w-6xl mx-auto pb-12">
+    <!-- Top Action Breadcrumbs -->
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">
+                <a href="{% url 'dashboard' %}" class="hover:underline">Dashboard</a>
+                <span>/</span>
+                <a href="{% url 'food_waste_list' %}" class="hover:underline">Food Waste</a>
+                <span>/</span>
+                <span class="text-gray-400">{% if is_edit %}Edit #{{ form.instance.id }}{% else %}Add Entry{% endif %}</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                {% if is_edit %}Update Food Waste Log{% else %}Daily Food Waste Entry{% endif %}
+            </h2>
+            <p class="text-xs sm:text-sm text-gray-500 mt-1">Record meal consumption, wastage metrics, shortages, and meal quality reviews.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'food_waste_list' %}" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-emerald-700 shadow-sm transition">
+                <i class="fas fa-list text-xs"></i>
+                <span>View All Records</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Live Metrics Counter Bar -->
+    <div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl p-4 text-white shadow-lg shadow-emerald-500/15 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-100">Live Total Received</p>
+                <h3 class="text-2xl font-black mt-1" id="live-total-received">0.00 <span class="text-xs font-normal text-emerald-200">kg</span></h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-xl text-white">
+                <i class="fas fa-boxes-stacked"></i>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg shadow-amber-500/15 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-amber-100">Live Total Wastage</p>
+                <h3 class="text-2xl font-black mt-1" id="live-total-wastage">0.00 <span class="text-xs font-normal text-amber-200">kg</span></h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-xl text-white">
+                <i class="fas fa-trash-can"></i>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl p-4 text-white shadow-lg shadow-rose-500/15 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-rose-100">Live Wastage Rate</p>
+                <h3 class="text-2xl font-black mt-1" id="live-wastage-pct">0.0%</h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-xl text-white">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Element -->
+    <form method="POST" action="" id="foodWasteForm" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-3">
+                <i class="fas fa-circle-exclamation text-lg shrink-0"></i>
+                <div>{{ form.non_field_errors.0 }}</div>
+            </div>
+        {% endif %}
+
+        <!-- Section 1: Store & Date Details -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-gray-200/80 p-5 sm:p-8 relative z-30">
+            <div class="flex items-center gap-3.5 pb-5 border-b border-gray-100 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold">
+                    <i class="fas fa-store"></i>
+                </div>
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-gray-900">General Information</h3>
+                    <p class="text-xs text-gray-500">Select the food waste store location, entry date and reporting month.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <!-- Store Name (Custom Searchable Downward Dropdown Styled Like Grievances) -->
+                <div class="relative z-[60]">
+                    <label for="{{ form.store.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-location-dot text-emerald-500"></i> Store Name <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.store }}
+                    {% if form.store.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.store.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Date -->
+                <div>
+                    <label for="{{ form.date.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-calendar-day text-emerald-500"></i> Date <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.date }}
+                    {% if form.date.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Month (Dropdown of all months, default current month) -->
+                <div>
+                    <label for="{{ form.month.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-calendar-check text-emerald-500"></i> Month <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.month }}
+                    {% if form.month.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.month.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Breakfast -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-gray-200/80 p-5 sm:p-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-amber-400 to-orange-500"></div>
+            
+            <div class="flex items-center justify-between pb-5 border-b border-gray-100 mb-6">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg font-bold border border-amber-200/60 shadow-xs">
+                        <i class="fas fa-mug-hot"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                            Breakfast
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">Morning Meal</span>
+                        </h3>
+                        <p class="text-xs text-gray-500">Record breakfast items, weights, shortage status and review remarks.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breakfast Menu -->
+            <div class="mb-5">
+                <label for="{{ form.breakfast_menu.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                    Breakfast Menu
+                </label>
+                {{ form.breakfast_menu }}
+                {% if form.breakfast_menu.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ form.breakfast_menu.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Breakfast Weights & Shortage Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-5">
+                <div>
+                    <label for="{{ form.breakfast_received_kg.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Received (kg)
+                    </label>
+                    <div class="relative">
+                        {{ form.breakfast_received_kg }}
+                        <span class="absolute right-3.5 top-2.5 text-xs text-gray-400 font-semibold pointer-events-none">kg</span>
+                    </div>
+                    {% if form.breakfast_received_kg.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.breakfast_received_kg.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.breakfast_wastage_kg.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Wastage (kg)
+                    </label>
+                    <div class="relative">
+                        {{ form.breakfast_wastage_kg }}
+                        <span class="absolute right-3.5 top-2.5 text-xs text-gray-400 font-semibold pointer-events-none">kg</span>
+                    </div>
+                    {% if form.breakfast_wastage_kg.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.breakfast_wastage_kg.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.breakfast_shortage.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Shortage?
+                    </label>
+                    {{ form.breakfast_shortage }}
+                    {% if form.breakfast_shortage.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.breakfast_shortage.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div id="breakfast-shortage-count-wrapper" class="{% if form.breakfast_shortage.value != 'yes' %}hidden{% endif %} transition-all duration-200">
+                    <label for="{{ form.breakfast_shortage_count.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-amber-700 mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-triangle-exclamation text-amber-500"></i>
+                        Shortage Count <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.breakfast_shortage_count }}
+                    {% if form.breakfast_shortage_count.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.breakfast_shortage_count.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Breakfast Review & Remarks Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 pt-3 border-t border-gray-100">
+                <div>
+                    <label for="{{ form.breakfast_review.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Food Quality Review
+                    </label>
+                    {{ form.breakfast_review }}
+                    {% if form.breakfast_review.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.breakfast_review.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="sm:col-span-2" id="breakfast-remarks-wrapper">
+                    <label for="{{ form.breakfast_remarks.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
+                        <span>Remarks / Feedback</span>
+                        <span id="breakfast-remarks-badge" class="text-[11px] text-amber-600 font-semibold {% if not form.breakfast_review.value %}hidden{% endif %}">
+                            <i class="fas fa-pen-to-square"></i> Review Remarks
+                        </span>
+                    </label>
+                    {{ form.breakfast_remarks }}
+                    {% if form.breakfast_remarks.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.breakfast_remarks.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Lunch -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-gray-200/80 p-5 sm:p-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+
+            <div class="flex items-center justify-between pb-5 border-b border-gray-100 mb-6">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold border border-emerald-200/60 shadow-xs">
+                        <i class="fas fa-sun"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                            Lunch
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">Afternoon Meal</span>
+                        </h3>
+                        <p class="text-xs text-gray-500">Record lunch menu items, received/wastage kg, shortages and review remarks.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lunch Menu -->
+            <div class="mb-5">
+                <label for="{{ form.lunch_menu.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                    Lunch Menu
+                </label>
+                {{ form.lunch_menu }}
+                {% if form.lunch_menu.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ form.lunch_menu.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Lunch Weights & Shortage Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-5">
+                <div>
+                    <label for="{{ form.lunch_received_kg.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Received (kg)
+                    </label>
+                    <div class="relative">
+                        {{ form.lunch_received_kg }}
+                        <span class="absolute right-3.5 top-2.5 text-xs text-gray-400 font-semibold pointer-events-none">kg</span>
+                    </div>
+                    {% if form.lunch_received_kg.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.lunch_received_kg.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.lunch_wastage_kg.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Wastage (kg)
+                    </label>
+                    <div class="relative">
+                        {{ form.lunch_wastage_kg }}
+                        <span class="absolute right-3.5 top-2.5 text-xs text-gray-400 font-semibold pointer-events-none">kg</span>
+                    </div>
+                    {% if form.lunch_wastage_kg.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.lunch_wastage_kg.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.lunch_shortage.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Shortage?
+                    </label>
+                    {{ form.lunch_shortage }}
+                    {% if form.lunch_shortage.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.lunch_shortage.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div id="lunch-shortage-count-wrapper" class="{% if form.lunch_shortage.value != 'yes' %}hidden{% endif %} transition-all duration-200">
+                    <label for="{{ form.lunch_shortage_count.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-emerald-700 mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-triangle-exclamation text-amber-500"></i>
+                        Shortage Count <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.lunch_shortage_count }}
+                    {% if form.lunch_shortage_count.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.lunch_shortage_count.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Lunch Review & Remarks Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 pt-3 border-t border-gray-100">
+                <div>
+                    <label for="{{ form.lunch_review.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Food Quality Review
+                    </label>
+                    {{ form.lunch_review }}
+                    {% if form.lunch_review.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.lunch_review.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="sm:col-span-2" id="lunch-remarks-wrapper">
+                    <label for="{{ form.lunch_remarks.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
+                        <span>Remarks / Feedback</span>
+                        <span id="lunch-remarks-badge" class="text-[11px] text-emerald-600 font-semibold {% if not form.lunch_review.value %}hidden{% endif %}">
+                            <i class="fas fa-pen-to-square"></i> Review Remarks
+                        </span>
+                    </label>
+                    {{ form.lunch_remarks }}
+                    {% if form.lunch_remarks.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.lunch_remarks.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Dinner -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-gray-200/80 p-5 sm:p-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+
+            <div class="flex items-center justify-between pb-5 border-b border-gray-100 mb-6">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg font-bold border border-indigo-200/60 shadow-xs">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                            Dinner
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800">Night Meal</span>
+                        </h3>
+                        <p class="text-xs text-gray-500">Record dinner menu items, received/wastage kg, shortages and review remarks.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dinner Menu -->
+            <div class="mb-5">
+                <label for="{{ form.dinner_menu.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                    Dinner Menu
+                </label>
+                {{ form.dinner_menu }}
+                {% if form.dinner_menu.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ form.dinner_menu.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Dinner Weights & Shortage Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-5">
+                <div>
+                    <label for="{{ form.dinner_received_kg.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Received (kg)
+                    </label>
+                    <div class="relative">
+                        {{ form.dinner_received_kg }}
+                        <span class="absolute right-3.5 top-2.5 text-xs text-gray-400 font-semibold pointer-events-none">kg</span>
+                    </div>
+                    {% if form.dinner_received_kg.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.dinner_received_kg.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.dinner_wastage_kg.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Wastage (kg)
+                    </label>
+                    <div class="relative">
+                        {{ form.dinner_wastage_kg }}
+                        <span class="absolute right-3.5 top-2.5 text-xs text-gray-400 font-semibold pointer-events-none">kg</span>
+                    </div>
+                    {% if form.dinner_wastage_kg.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.dinner_wastage_kg.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.dinner_shortage.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Shortage?
+                    </label>
+                    {{ form.dinner_shortage }}
+                    {% if form.dinner_shortage.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.dinner_shortage.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div id="dinner-shortage-count-wrapper" class="{% if form.dinner_shortage.value != 'yes' %}hidden{% endif %} transition-all duration-200">
+                    <label for="{{ form.dinner_shortage_count.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-indigo-700 mb-1.5 flex items-center gap-1.5">
+                        <i class="fas fa-triangle-exclamation text-amber-500"></i>
+                        Shortage Count <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.dinner_shortage_count }}
+                    {% if form.dinner_shortage_count.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.dinner_shortage_count.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Dinner Review & Remarks Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 pt-3 border-t border-gray-100">
+                <div>
+                    <label for="{{ form.dinner_review.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                        Food Quality Review
+                    </label>
+                    {{ form.dinner_review }}
+                    {% if form.dinner_review.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.dinner_review.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="sm:col-span-2" id="dinner-remarks-wrapper">
+                    <label for="{{ form.dinner_remarks.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5 flex items-center justify-between">
+                        <span>Remarks / Feedback</span>
+                        <span id="dinner-remarks-badge" class="text-[11px] text-indigo-600 font-semibold {% if not form.dinner_review.value %}hidden{% endif %}">
+                            <i class="fas fa-pen-to-square"></i> Review Remarks
+                        </span>
+                    </label>
+                    {{ form.dinner_remarks }}
+                    {% if form.dinner_remarks.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ form.dinner_remarks.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit & Actions Bar -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-200/80 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+            <div class="flex items-center gap-2 text-xs text-gray-500">
+                <i class="fas fa-shield-halved text-emerald-600 text-sm"></i>
+                <span>All submitted food waste metrics are auditable and logged with your user credentials.</span>
+            </div>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <a href="{% url 'food_waste_list' %}" class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold text-xs sm:text-sm transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-7 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 hover:shadow-lg transition flex items-center gap-2">
+                    <i class="fas fa-cloud-arrow-up text-xs"></i>
+                    <span>{% if is_edit %}Update Food Waste Log{% else %}Save Food Waste Entry{% endif %}</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        /**
+         * Initializes a custom downward searchable dropdown matching the Grievance form style.
+         */
+        function initDownwardDropdown(selectId, searchPlaceholder) {
+            const select = document.getElementById(selectId);
+            if (!select || select.dataset.downwardInitialized) return;
+            select.dataset.downwardInitialized = 'true';
+
+            // Hide native select visually while keeping it for form submission
+            select.style.display = 'none';
+
+            // Wrapper container
+            const wrapper = document.createElement('div');
+            wrapper.className = 'relative w-full custom-downward-select-wrapper';
+
+            // Trigger button styled to match the Grievance form design
+            const trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-800 transition hover:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer shadow-sm text-left';
+
+            const triggerText = document.createElement('span');
+            triggerText.className = 'truncate pr-2';
+
+            const chevron = document.createElement('i');
+            chevron.className = 'fas fa-chevron-down text-gray-400 text-xs transition-transform duration-200 flex-shrink-0';
+
+            trigger.appendChild(triggerText);
+            trigger.appendChild(chevron);
+            wrapper.appendChild(trigger);
+
+            // Dropdown Menu positioned below
+            const menu = document.createElement('div');
+            menu.className = 'custom-menu hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden ring-1 ring-black/5';
+
+            // Search bar
+            const searchWrapper = document.createElement('div');
+            searchWrapper.className = 'p-2.5 border-b border-gray-100 bg-gray-50/70';
+            searchWrapper.innerHTML = `
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-xs text-gray-400"></i>
+                    <input type="text" class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-gray-800" placeholder="${searchPlaceholder || 'Type to search...'}">
+                </div>
+            `;
+            const searchInput = searchWrapper.querySelector('input');
+            menu.appendChild(searchWrapper);
+
+            // Options list container
+            const listContainer = document.createElement('div');
+            listContainer.className = 'max-h-56 overflow-y-auto py-1 divide-y divide-gray-50';
+            menu.appendChild(listContainer);
+
+            // Empty state message
+            const noResults = document.createElement('div');
+            noResults.className = 'hidden px-4 py-3 text-xs text-gray-400 text-center italic';
+            noResults.textContent = 'No matching options found';
+            listContainer.appendChild(noResults);
+
+            function updateTriggerText() {
+                const selectedOption = select.options[select.selectedIndex];
+                if (selectedOption && selectedOption.value) {
+                    triggerText.textContent = selectedOption.text;
+                    triggerText.classList.remove('text-gray-400');
+                    triggerText.classList.add('text-gray-900', 'font-medium');
+                } else {
+                    triggerText.textContent = (selectedOption ? selectedOption.text : '') || 'Select Store / Location';
+                    triggerText.classList.add('text-gray-400');
+                    triggerText.classList.remove('text-gray-900', 'font-medium');
+                }
+            }
+
+            function renderOptions() {
+                Array.from(listContainer.children).forEach(child => {
+                    if (child !== noResults) child.remove();
+                });
+
+                Array.from(select.options).forEach((opt, index) => {
+                    const item = document.createElement('div');
+                    const isSelected = select.selectedIndex === index;
+                    const isEmptyLabel = !opt.value;
+
+                    item.className = `px-4 py-2 text-sm cursor-pointer flex items-center justify-between transition ${
+                        isSelected
+                            ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                            : isEmptyLabel
+                                ? 'text-gray-400 hover:bg-gray-50'
+                                : 'text-gray-700 hover:bg-emerald-50/60 hover:text-emerald-700'
+                    }`;
+                    item.dataset.value = opt.value;
+                    item.dataset.text = opt.text.toLowerCase();
+
+                    const labelSpan = document.createElement('span');
+                    labelSpan.textContent = opt.text;
+                    item.appendChild(labelSpan);
+
+                    if (isSelected && opt.value) {
+                        const check = document.createElement('i');
+                        check.className = 'fas fa-check text-xs text-emerald-600';
+                        item.appendChild(check);
+                    }
+
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        select.selectedIndex = index;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                        updateTriggerText();
+                        renderOptions();
+                        closeMenu();
+                    });
+
+                    listContainer.insertBefore(item, noResults);
+                });
+            }
+
+            function filterOptions(query) {
+                query = query.trim().toLowerCase();
+                let visibleCount = 0;
+                const items = listContainer.querySelectorAll('[data-value]');
+                items.forEach(item => {
+                    const text = item.dataset.text || '';
+                    if (!query || text.includes(query)) {
+                        item.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                if (visibleCount === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                }
+            }
+
+            function openMenu() {
+                document.querySelectorAll('.custom-downward-select-wrapper').forEach(w => {
+                    const m = w.querySelector('.custom-menu');
+                    if (m && m !== menu) {
+                        m.classList.add('hidden');
+                        w.style.zIndex = '';
+                        w.querySelector('i.fa-chevron-down')?.classList.remove('rotate-180');
+                        w.querySelector('button')?.classList.remove('border-emerald-500', 'ring-2', 'ring-emerald-500/20', 'bg-white');
+                    }
+                });
+
+                wrapper.style.zIndex = '60';
+                menu.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+                trigger.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-500/20', 'bg-white');
+
+                searchInput.value = '';
+                filterOptions('');
+                setTimeout(() => searchInput.focus(), 50);
+            }
+
+            function closeMenu() {
+                menu.classList.add('hidden');
+                wrapper.style.zIndex = '';
+                chevron.classList.remove('rotate-180');
+                trigger.classList.remove('border-emerald-500', 'ring-2', 'ring-emerald-500/20', 'bg-white');
+            }
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (menu.classList.contains('hidden')) {
+                    openMenu();
+                } else {
+                    closeMenu();
+                }
+            });
+
+            searchInput.addEventListener('input', (e) => {
+                filterOptions(e.target.value);
+            });
+
+            searchInput.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeMenu();
+                    trigger.focus();
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!wrapper.contains(e.target)) {
+                    closeMenu();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+                    closeMenu();
+                    trigger.focus();
+                }
+            });
+
+            if (select.form) {
+                select.form.addEventListener('reset', () => {
+                    setTimeout(() => {
+                        updateTriggerText();
+                        renderOptions();
+                    }, 50);
+                });
+            }
+
+            wrapper.appendChild(menu);
+            select.parentNode.insertBefore(wrapper, select.nextSibling);
+
+            updateTriggerText();
+            renderOptions();
+        }
+
+        // Initialize Store dropdown with Grievance-style custom downward search
+        initDownwardDropdown('id_store', 'Search store / location...');
+
+        // Shortage toggle logic
+        function setupShortageToggle(selectId, wrapperId, inputId) {
+            const selectEl = document.getElementById(selectId);
+            const wrapperEl = document.getElementById(wrapperId);
+            const inputEl = document.getElementById(inputId);
+            if (!selectEl || !wrapperEl) return;
+
+            function update() {
+                if (selectEl.value === 'yes') {
+                    wrapperEl.classList.remove('hidden');
+                    if (inputEl) inputEl.focus();
+                } else {
+                    wrapperEl.classList.add('hidden');
+                    if (inputEl && !inputEl.value) inputEl.value = '';
+                }
+            }
+            selectEl.addEventListener('change', update);
+            update();
+        }
+
+        setupShortageToggle('id_breakfast_shortage', 'breakfast-shortage-count-wrapper', 'id_breakfast_shortage_count');
+        setupShortageToggle('id_lunch_shortage', 'lunch-shortage-count-wrapper', 'id_lunch_shortage_count');
+        setupShortageToggle('id_dinner_shortage', 'dinner-shortage-count-wrapper', 'id_dinner_shortage_count');
+
+        // Review remarks highlight logic
+        function setupReviewRemarks(selectId, badgeId, remarksId) {
+            const selectEl = document.getElementById(selectId);
+            const badgeEl = document.getElementById(badgeId);
+            const remarksEl = document.getElementById(remarksId);
+            if (!selectEl || !badgeEl) return;
+
+            function update() {
+                if (selectEl.value && selectEl.value !== '') {
+                    badgeEl.classList.remove('hidden');
+                    if (remarksEl) {
+                        remarksEl.classList.add('border-emerald-300', 'bg-emerald-50/20');
+                    }
+                } else {
+                    badgeEl.classList.add('hidden');
+                    if (remarksEl) {
+                        remarksEl.classList.remove('border-emerald-300', 'bg-emerald-50/20');
+                    }
+                }
+            }
+            selectEl.addEventListener('change', update);
+            update();
+        }
+
+        setupReviewRemarks('id_breakfast_review', 'breakfast-remarks-badge', 'id_breakfast_remarks');
+        setupReviewRemarks('id_lunch_review', 'lunch-remarks-badge', 'id_lunch_remarks');
+        setupReviewRemarks('id_dinner_review', 'dinner-remarks-badge', 'id_dinner_remarks');
+
+        // When date input changes, automatically select that month in the month dropdown
+        const dateInput = document.getElementById('id_date');
+        const monthSelect = document.getElementById('id_month');
+        if (dateInput && monthSelect) {
+            dateInput.addEventListener('change', function() {
+                if (this.value) {
+                    const d = new Date(this.value + 'T00:00:00');
+                    if (!isNaN(d.getTime())) {
+                        const monthName = d.toLocaleString('default', { month: 'long' });
+                        for (let i = 0; i < monthSelect.options.length; i++) {
+                            if (monthSelect.options[i].value === monthName) {
+                                monthSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Live KPI calculator
+        function recalculateLiveMetrics() {
+            const bRecv = parseFloat(document.getElementById('id_breakfast_received_kg')?.value) || 0;
+            const lRecv = parseFloat(document.getElementById('id_lunch_received_kg')?.value) || 0;
+            const dRecv = parseFloat(document.getElementById('id_dinner_received_kg')?.value) || 0;
+
+            const bWaste = parseFloat(document.getElementById('id_breakfast_wastage_kg')?.value) || 0;
+            const lWaste = parseFloat(document.getElementById('id_lunch_wastage_kg')?.value) || 0;
+            const dWaste = parseFloat(document.getElementById('id_dinner_wastage_kg')?.value) || 0;
+
+            const totalRecv = bRecv + lRecv + dRecv;
+            const totalWaste = bWaste + lWaste + dWaste;
+            const wastePct = totalRecv > 0 ? ((totalWaste / totalRecv) * 100).toFixed(1) : '0.0';
+
+            const totalRecvEl = document.getElementById('live-total-received');
+            const totalWasteEl = document.getElementById('live-total-wastage');
+            const wastePctEl = document.getElementById('live-wastage-pct');
+
+            if (totalRecvEl) totalRecvEl.innerHTML = `${totalRecv.toFixed(2)} <span class="text-xs font-normal text-emerald-200">kg</span>`;
+            if (totalWasteEl) totalWasteEl.innerHTML = `${totalWaste.toFixed(2)} <span class="text-xs font-normal text-amber-200">kg</span>`;
+            if (wastePctEl) wastePctEl.innerText = `${wastePct}%`;
+        }
+
+        const numericInputs = document.querySelectorAll('.meal-received, .meal-wastage');
+        numericInputs.forEach(input => {
+            input.addEventListener('input', recalculateLiveMetrics);
+        });
+        recalculateLiveMetrics();
+    });
+</script>
+{% endblock %}

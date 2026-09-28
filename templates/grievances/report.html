@@ -1,0 +1,208 @@
+{% extends 'grievances/base.html' %}
+
+{% block title %}Grievance Store Matrix Report - Grievance Portal{% endblock %}
+
+{% block header %}Grievance Store Matrix Report{% endblock %}
+
+{% block header_actions %}
+<button type="button" onclick="exportReportToExcel()" class="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition">
+    <i class="fas fa-file-csv text-xs"></i>
+    <span>Export Matrix (CSV)</span>
+</button>
+{% endblock %}
+
+{% block content %}
+<style>
+    .matrix-table-container {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f8fafc;
+    }
+    .matrix-table-container::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    .matrix-table-container::-webkit-scrollbar-track {
+        background: #f8fafc;
+    }
+    .matrix-table-container::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+    }
+    .matrix-table-container::-webkit-scrollbar-thumb:hover {
+        background-color: #94a3b8;
+    }
+    .matrix-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+    }
+    .sticky-col-left {
+        position: sticky;
+        left: 0;
+        z-index: 25;
+        background-color: inherit;
+    }
+    .matrix-table thead th.sticky-col-left {
+        z-index: 40;
+    }
+</style>
+
+<div class="space-y-6 pb-12">
+    <!-- Reports Submenu Option Switcher Tabs -->
+    <div class="flex items-center gap-2 p-1.5 bg-gray-200/70 rounded-2xl w-fit border border-gray-200/90 shadow-xs">
+        <a href="{% url 'grievance_report' %}" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 bg-white text-emerald-700 shadow-sm border border-gray-200">
+            <i class="fas fa-table-cells text-xs"></i>
+            <span>Grievance Report</span>
+        </a>
+        <a href="{% url 'food_waste_report' %}" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 text-gray-600 hover:text-emerald-700 hover:bg-white/50">
+            <i class="fas fa-file-invoice text-xs"></i>
+            <span>Food Waste Report</span>
+        </a>
+    </div>
+
+    <!-- Top Action Breadcrumbs -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">
+                <a href="{% url 'dashboard' %}" class="hover:underline">Dashboard</a>
+                <span>/</span>
+                <span>Reports</span>
+                <span>/</span>
+                <span class="text-gray-400">Store vs Enquiry Type</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                Store vs Enquiry Type Report
+            </h2>
+            <p class="text-xs sm:text-sm text-gray-500 mt-1">Cross-tabulated breakdown showing all grievance counts categorized by enquiry type and store location.</p>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-xs">
+        <form method="GET" action="{% url 'grievance_report' %}" id="reportFilterForm" class="flex flex-col md:flex-row flex-wrap items-stretch md:items-center gap-3">
+            <!-- Store Filter -->
+            <div class="w-full sm:w-48">
+                <select name="store" class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-xs sm:text-sm text-gray-800 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none">
+                    <option value="">All Stores ({{ all_filter_stores.count }})</option>
+                    {% for s in all_filter_stores %}
+                        <option value="{{ s.id }}" {% if selected_store|add:"0" == s.id %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date Range -->
+            <div class="flex items-center gap-1.5 border border-gray-200 rounded-xl px-2.5 py-1.5 bg-gray-50/50 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
+                <i class="far fa-calendar-alt text-gray-400 text-xs"></i>
+                <input type="date" name="start_date" value="{{ start_date }}" class="border-none outline-none text-xs bg-transparent w-28 text-gray-700" title="Start Date">
+                <span class="text-gray-300 text-xs">to</span>
+                <input type="date" name="end_date" value="{{ end_date }}" class="border-none outline-none text-xs bg-transparent w-28 text-gray-700" title="End Date">
+            </div>
+
+            <!-- Status Filter -->
+            <div class="w-full sm:w-36">
+                <select name="status" class="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-xs sm:text-sm text-gray-800 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                        <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 ml-auto w-full md:w-auto">
+                <button type="submit" class="flex-1 md:flex-initial px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition">
+                    <i class="fas fa-filter text-xs mr-1.5"></i>Filter
+                </button>
+                <a href="{% url 'grievance_report' %}" class="px-3.5 py-2 text-xs sm:text-sm text-gray-500 hover:text-gray-800 rounded-xl hover:bg-gray-100 transition text-center">
+                    Reset
+                </a>
+                <button type="button" onclick="exportReportToExcel()" class="flex-1 md:flex-initial px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-file-excel text-xs"></i><span>Export Matrix</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Matrix Table Container (Styled like the reference image) -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+        <div class="matrix-table-container overflow-x-auto max-h-[700px]">
+            <table class="matrix-table w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-gradient-to-r from-pink-600 via-rose-600 to-fuchsia-600 text-white text-xs font-bold uppercase tracking-wider shadow-sm">
+                        <th class="py-3.5 px-4 min-w-[240px] sticky-col-left bg-[#e11d48] border-r border-rose-500/40">
+                            Particulars (Store Name)
+                        </th>
+                        {% for et in enquiry_types %}
+                            <th class="py-3.5 px-3 text-center whitespace-nowrap min-w-[120px] border-r border-rose-500/40" title="{{ et.name }}">
+                                {{ et.name }}
+                            </th>
+                        {% endfor %}
+                        <th class="py-3.5 px-4 text-center whitespace-nowrap min-w-[90px] bg-rose-800">
+                            Total
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 text-gray-800">
+                    {% for row in matrix_rows %}
+                    <tr class="hover:bg-rose-50/40 transition {% if row.total > 0 %}bg-white{% else %}bg-gray-50/30{% endif %}">
+                        <!-- Particulars (Store Name) -->
+                        <td class="py-2.5 px-4 font-semibold text-gray-900 sticky-col-left bg-inherit border-r border-gray-200 shadow-[1px_0_0_0_#e5e7eb]">
+                            <span class="text-gray-400 font-mono text-[11px] mr-1.5">{{ row.index }}.</span>
+                            <span>{{ row.store.name }}</span>
+                        </td>
+
+                        <!-- Enquiry Type Counts -->
+                        {% for count in row.counts %}
+                            <td class="py-2.5 px-3 text-center border-r border-gray-200">
+                                {% if count > 0 %}
+                                    <span class="font-bold text-gray-900 bg-rose-50 text-rose-700 px-2 py-0.5 rounded-md border border-rose-100">{{ count }}</span>
+                                {% else %}
+                                    <span class="text-gray-300 font-light">0</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+
+                        <!-- Row Total -->
+                        <td class="py-2.5 px-4 text-center font-bold bg-rose-50/50 text-rose-800 border-l border-rose-200">
+                            {{ row.total }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{{ enquiry_types|length|add:2 }}" class="py-12 text-center text-gray-400">
+                            No records found matching the selected filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    <!-- Grand Total Row -->
+                    <tr class="bg-gray-200 text-gray-900 font-bold border-t-2 border-gray-400 text-xs sm:text-sm">
+                        <td class="py-3.5 px-4 sticky-col-left bg-gray-200 border-r border-gray-300 uppercase tracking-wider font-extrabold shadow-[1px_0_0_0_#cbd5e1]">
+                            Grand Total
+                        </td>
+                        {% for col_total in enquiry_type_column_totals %}
+                            <td class="py-3.5 px-3 text-center border-r border-gray-300 font-black">
+                                {{ col_total }}
+                            </td>
+                        {% endfor %}
+                        <td class="py-3.5 px-4 text-center font-black bg-gray-300 text-rose-900 border-l border-gray-400">
+                            {{ grand_total }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function exportReportToExcel() {
+        const form = document.getElementById('reportFilterForm');
+        const params = new URLSearchParams(new FormData(form));
+        params.append('export', 'excel');
+        window.location.href = '{% url "grievance_report" %}?' + params.toString();
+    }
+</script>
+{% endblock %}

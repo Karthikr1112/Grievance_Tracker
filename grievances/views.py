@@ -1,6 +1,6 @@
 import csv
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 from collections import OrderedDict
 from functools import wraps
 
@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum
 from django.http import HttpResponse
 
 from .forms import GrievanceForm, CustomUserCreationForm, CustomUserEditForm
@@ -405,8 +405,8 @@ def dashboard_view(request):
     store_labels = [item['store__name'] for item in store_counts]
     store_data = [item['count'] for item in store_counts]
 
-    # Chart 3: By Enquiry Type / Category (Top 15 Categories)
-    type_counts = qs.filter(enquiry_type__isnull=False).values('enquiry_type__name').annotate(count=Count('id')).order_by('-count')[:15]
+    # Chart 3: By Enquiry Type / Category (All Categories)
+    type_counts = qs.filter(enquiry_type__isnull=False).values('enquiry_type__name').annotate(count=Count('id')).order_by('-count')
     type_labels = [item['enquiry_type__name'] for item in type_counts]
     type_data = [item['count'] for item in type_counts]
 
@@ -456,9 +456,78 @@ def dashboard_view(request):
         {'gradient': 'from-emerald-400 to-emerald-500', 'shadow': 'shadow-emerald-500/30', 'text': 'text-emerald-100'},
     ]
     import random
-    random.shuffle(colors)
-    context = {
+    # Food Waste Metrics for Dashboard
+    from food_waste.views import get_user_food_waste_queryset
 
+    fw_qs = get_user_food_waste_queryset(request.user)
+    fw_agg = fw_qs.aggregate(
+        b_recv=Sum('breakfast_received_kg'),
+        l_recv=Sum('lunch_received_kg'),
+        d_recv=Sum('dinner_received_kg'),
+        b_waste=Sum('breakfast_wastage_kg'),
+        l_waste=Sum('lunch_wastage_kg'),
+        d_waste=Sum('dinner_wastage_kg'),
+    )
+    b_recv = round(float(fw_agg['b_recv'] or 0), 1)
+    l_recv = round(float(fw_agg['l_recv'] or 0), 1)
+    d_recv = round(float(fw_agg['d_recv'] or 0), 1)
+    b_waste = round(float(fw_agg['b_waste'] or 0), 1)
+    l_waste = round(float(fw_agg['l_waste'] or 0), 1)
+    d_waste = round(float(fw_agg['d_waste'] or 0), 1)
+
+    total_food_received = round(b_recv + l_recv + d_recv, 1)
+    total_food_waste = round(b_waste + l_waste + d_waste, 1)
+    food_wastage_pct = (
+        round((total_food_waste / total_food_received) * 100, 1)
+        if total_food_received > 0 else 0.0
+    )
+
+    def calc_meal_pct(waste, recv):
+        return round((float(waste) / float(recv)) * 100, 1) if recv > 0 else 0.0
+
+    fw_meal_labels = ['Breakfast', 'Lunch', 'Dinner']
+    fw_meal_received_data = [b_recv, l_recv, d_recv]
+    fw_meal_waste_data = [b_waste, l_waste, d_waste]
+    fw_meal_pct_data = [
+        calc_meal_pct(b_waste, b_recv),
+        calc_meal_pct(l_waste, l_recv),
+        calc_meal_pct(d_waste, d_recv),
+    ]
+
+    store_fw_qs = (
+        fw_qs.filter(store__isnull=False)
+        .values('store__name')
+        .annotate(
+            b_recv=Sum('breakfast_received_kg'),
+            l_recv=Sum('lunch_received_kg'),
+            d_recv=Sum('dinner_received_kg'),
+            b_waste=Sum('breakfast_wastage_kg'),
+            l_waste=Sum('lunch_wastage_kg'),
+            d_waste=Sum('dinner_wastage_kg'),
+        )
+        .order_by('store__name')
+    )
+
+    store_fw_list = []
+    for item in store_fw_qs:
+        s_recv = round(float(item['b_recv'] or 0) + float(item['l_recv'] or 0) + float(item['d_recv'] or 0), 1)
+        s_waste = round(float(item['b_waste'] or 0) + float(item['l_waste'] or 0) + float(item['d_waste'] or 0), 1)
+        if s_recv > 0 or s_waste > 0:
+            store_fw_list.append({
+                'name': item['store__name'],
+                'recv': s_recv,
+                'waste': s_waste,
+            })
+
+    # Sort by highest received volume (top 10 stores for clear presentation)
+    store_fw_list.sort(key=lambda x: x['recv'], reverse=True)
+    top_store_fw = store_fw_list[:10]
+
+    fw_store_labels = [s['name'] for s in top_store_fw]
+    fw_store_received_data = [s['recv'] for s in top_store_fw]
+    fw_store_waste_data = [s['waste'] for s in top_store_fw]
+
+    context = {
         'total_count': total_count,
         'open_count': open_count,
         'hold_count': hold_count,
@@ -474,6 +543,23 @@ def dashboard_view(request):
         'day_labels': day_labels,
         'day_data': day_data,
         'kpi_colors': colors,
+        'total_food_received': total_food_received,
+        'total_food_waste': total_food_waste,
+        'food_wastage_pct': food_wastage_pct,
+        'fw_store_labels_json': json.dumps(fw_store_labels),
+        'fw_store_received_json': json.dumps(fw_store_received_data),
+        'fw_store_waste_json': json.dumps(fw_store_waste_data),
+        'fw_meal_labels_json': json.dumps(fw_meal_labels),
+        'fw_meal_received_json': json.dumps(fw_meal_received_data),
+        'fw_meal_waste_json': json.dumps(fw_meal_waste_data),
+        'fw_meal_pct_json': json.dumps(fw_meal_pct_data),
+        'fw_store_labels': fw_store_labels,
+        'fw_store_received_data': fw_store_received_data,
+        'fw_store_waste_data': fw_store_waste_data,
+        'fw_meal_labels': fw_meal_labels,
+        'fw_meal_received_data': fw_meal_received_data,
+        'fw_meal_waste_data': fw_meal_waste_data,
+        'fw_meal_pct_data': fw_meal_pct_data,
     }
     return render(request, 'grievances/dashboard.html', context)
 
@@ -781,3 +867,92 @@ def user_delete_view(request, pk):
     target_user.delete()
     messages.success(request, f"User '{username}' deleted successfully.")
     return redirect('user_list')
+
+
+@admin_required
+def grievance_report_view(request):
+    qs = get_user_grievance_queryset(request.user)
+
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    status = request.GET.get('status')
+    store_id = request.GET.get('store')
+
+    if start_date:
+        qs = qs.filter(open_date__gte=start_date)
+    if end_date:
+        qs = qs.filter(open_date__lte=end_date)
+    if status:
+        qs = qs.filter(current_status=status)
+
+    stores_qs = Store.objects.filter(is_active=True).order_by('name')
+    if not request.user.is_superuser:
+        profile = getattr(request.user, 'profile', None)
+        if profile and not profile.is_admin:
+            role_name = profile.role.name.lower() if profile.role else 'hr'
+            if role_name == 'hr' and profile.stores.exists():
+                stores_qs = profile.stores.filter(is_active=True).order_by('name')
+            else:
+                stores_qs = Store.objects.none()
+
+    if store_id:
+        qs = qs.filter(store_id=store_id)
+        stores_list = list(stores_qs.filter(id=store_id))
+    else:
+        stores_list = list(stores_qs)
+
+    enquiry_types = list(EnquiryType.objects.filter(is_active=True).order_by('name'))
+
+    counts = qs.values('enquiry_type_id', 'store_id').annotate(count=Count('id'))
+    count_map = {(item['enquiry_type_id'], item['store_id']): item['count'] for item in counts}
+
+    enquiry_type_totals = {et.id: 0 for et in enquiry_types}
+    grand_total = 0
+
+    matrix_rows = []
+    for idx, st in enumerate(stores_list, 1):
+        row_counts = []
+        row_total = 0
+        for et in enquiry_types:
+            c = count_map.get((et.id, st.id), 0)
+            row_counts.append(c)
+            row_total += c
+            enquiry_type_totals[et.id] += c
+        grand_total += row_total
+        matrix_rows.append({
+            'index': idx,
+            'store': st,
+            'counts': row_counts,
+            'total': row_total,
+        })
+
+    enquiry_type_column_totals = [enquiry_type_totals[et.id] for et in enquiry_types]
+
+    if request.GET.get('export') == 'excel':
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="grievance_store_enquiry_matrix_{datetime.now().strftime("%Y%m%d_%H%M")}.csv"'
+        writer = csv.writer(response)
+
+        header = ['S.No', 'Particulars (Store Name)'] + [et.name for et in enquiry_types] + ['Total']
+        writer.writerow(header)
+
+        for row in matrix_rows:
+            writer.writerow([row['index'], row['store'].name] + row['counts'] + [row['total']])
+
+        writer.writerow(['', 'Grand Total'] + enquiry_type_column_totals + [grand_total])
+        return response
+
+    return render(request, 'grievances/report.html', {
+        'stores': stores_list,
+        'all_filter_stores': stores_qs,
+        'enquiry_types': enquiry_types,
+        'matrix_rows': matrix_rows,
+        'enquiry_type_column_totals': enquiry_type_column_totals,
+        'grand_total': grand_total,
+        'status_choices': Grievance.STATUS_CHOICES,
+        'selected_store': store_id,
+        'start_date': start_date,
+        'end_date': end_date,
+        'status': status,
+    })
+

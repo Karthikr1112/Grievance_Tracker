@@ -18,21 +18,21 @@
 
 
     <!-- Mobile overlay (hidden by default) -->
-    <div id="mobile-sidebar-overlay" class="fixed inset-0 bg-gray-900/50 z-40 hidden md:hidden transition-opacity duration-300 opacity-0" onclick="toggleMobileMenu()"></div>
+    <div id="mobile-sidebar-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 hidden md:hidden transition-opacity duration-300 opacity-0" onclick="toggleMobileMenu()"></div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="w-64 bg-emerald-50/40 border-r border-emerald-100 text-gray-800 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out z-50 shadow-2xl md:shadow-none">
-        <div class="h-16 flex items-center px-6 border-b border-emerald-100 gap-3">
-            <div class="w-8 h-8 flex items-center justify-center">
+    <!-- Sidebar (Solid bg on mobile, smooth sliding drawer) -->
+    <aside id="sidebar" class="w-72 max-w-[85vw] bg-white md:bg-emerald-50/40 border-r border-emerald-100 text-gray-800 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-50 shadow-2xl md:shadow-none">
+        <div class="h-16 flex items-center px-5 sm:px-6 border-b border-emerald-100 gap-3 bg-white md:bg-transparent shrink-0">
+            <div class="w-8 h-8 flex items-center justify-center shrink-0">
                 <img src="/media/image.png" alt="Logo" class="w-full h-full object-contain mix-blend-multiply">
             </div>
-            <div>
-                <h1 class="text-sm font-bold tracking-wide uppercase text-gray-800">Grievance Portal</h1>
-                <p class="text-[10px] text-gray-500 font-medium">Issue Resolution System</p>
+            <div class="min-w-0">
+                <h1 class="text-sm font-bold tracking-wide uppercase text-gray-800 truncate">Grievance Portal</h1>
+                <p class="text-[10px] text-gray-500 font-medium truncate">Issue Resolution System</p>
             </div>
-            <!-- Mobile Close Button -->
-            <button onclick="toggleMobileMenu()" class="md:hidden ml-auto text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-emerald-100">
-                <i class="fas fa-xmark"></i>
+            <!-- Mobile Close Button with accessible touch target -->
+            <button type="button" onclick="toggleMobileMenu()" aria-label="Close Sidebar" class="md:hidden ml-auto text-gray-400 hover:text-gray-700 p-2.5 rounded-xl hover:bg-emerald-50 active:bg-emerald-100 transition">
+                <i class="fas fa-xmark text-lg"></i>
             </button>
         </div>
 
@@ -41,7 +41,7 @@
             
             <!-- Dashboard -->
             <a href="{% url 'dashboard' %}" 
-               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-white text-emerald-700 shadow-sm border border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-white/60 hover:text-emerald-700{% endif %}">
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'dashboard' %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-chart-pie w-5 text-center text-sm"></i>
                     <span>Dashboard</span>
@@ -50,7 +50,7 @@
 
             <!-- New Grievance -->
             <a href="{% url 'grievance_create' %}" 
-               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'grievance_create' %}bg-white text-emerald-700 shadow-sm border border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-white/60 hover:text-emerald-700{% endif %}">
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'grievance_create' %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-plus-circle w-5 text-center text-sm"></i>
                     <span>New Grievance</span>
@@ -59,19 +59,72 @@
 
             <!-- Grievance List -->
             <a href="{% url 'grievance_list' %}" 
-               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name in 'grievance_list,grievance_update' %}bg-white text-emerald-700 shadow-sm border border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-white/60 hover:text-emerald-700{% endif %}">
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name in 'grievance_list,grievance_update' %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-list-check w-5 text-center text-sm"></i>
                     <span>Grievance List</span>
                 </div>
             </a>
 
+            <!-- Food Waste Section -->
+            <div class="pt-4 px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400">Food Waste</div>
+
+            <!-- Add Food Waste -->
+            <a href="{% url 'food_waste_create' %}" 
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name == 'food_waste_create' %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-utensils w-5 text-center text-sm"></i>
+                    <span>Add Food Waste</span>
+                </div>
+            </a>
+
+            <!-- Food Waste Records -->
+            <a href="{% url 'food_waste_list' %}" 
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if request.resolver_match.url_name in 'food_waste_list,food_waste_edit' %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-chart-simple w-5 text-center text-sm"></i>
+                    <span>Food Waste Records</span>
+                </div>
+            </a>
+
+            <!-- Reports Collapsible Menu with Submenus (Admin Only) -->
+            {% if request.user.is_superuser or request.user.profile.is_admin %}
+            <div class="pt-2">
+                <button type="button" 
+                        onclick="toggleReportsMenu()" 
+                        class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer {% if 'report' in request.resolver_match.url_name %}bg-emerald-50/80 text-emerald-800 font-semibold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-chart-line w-5 text-center text-sm"></i>
+                        <span>Reports</span>
+                    </div>
+                    <i id="reports-menu-chevron" class="fas fa-chevron-down text-xs transition-transform duration-200 {% if 'report' in request.resolver_match.url_name %}rotate-180 text-emerald-700{% else %}text-gray-400{% endif %}"></i>
+                </button>
+
+                <!-- Submenu items -->
+                <div id="reports-submenu" class="mt-1 ml-4 pl-3 border-l-2 border-emerald-200/80 space-y-1 {% if 'report' in request.resolver_match.url_name %}{% else %}hidden{% endif %} transition-all duration-200">
+                    <!-- Grievance Report -->
+                    <a href="{% url 'grievance_report' %}" 
+                       class="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition {% if request.resolver_match.url_name == 'grievance_report' %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-bold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
+                        <i class="fas fa-table-cells w-4 text-center text-xs"></i>
+                        <span>Grievance Report</span>
+                    </a>
+
+                    <!-- Food Waste Report -->
+                    <a href="{% url 'food_waste_report' %}" 
+                       class="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition {% if request.resolver_match.url_name == 'food_waste_report' %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-bold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
+                        <i class="fas fa-file-invoice w-4 text-center text-xs"></i>
+                        <span>Food Waste Report</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Administration / User Management Section -->
             {% if request.user.is_superuser or request.user.profile.is_admin %}
             <div class="pt-5 px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">Administration</div>
             
             <a href="{% url 'user_list' %}" 
-               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if 'user' in request.resolver_match.url_name %}bg-white text-emerald-700 shadow-sm border border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-white/60 hover:text-emerald-700{% endif %}">
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition {% if 'user' in request.resolver_match.url_name %}bg-emerald-600 text-white shadow-sm md:bg-white md:text-emerald-700 md:border md:border-emerald-100 font-semibold{% else %}text-gray-600 hover:bg-emerald-50/70 hover:text-emerald-700{% endif %}">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-users-gear w-5 text-center text-sm"></i>
                     <span>User Management</span>
@@ -86,26 +139,26 @@
         </nav>
 
         <!-- User Profile Footer -->
-        <div class="p-3.5 border-t border-emerald-100 bg-emerald-100/30">
+        <div class="p-3.5 border-t border-emerald-100 bg-emerald-50/50 md:bg-emerald-100/30 shrink-0">
             <div class="flex items-center">
-                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold text-sm shadow-sm">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
                     {{ request.user.first_name|first|default:request.user.username|make_list|first|upper }}
                 </div>
-                <div class="ml-3 overflow-hidden">
-                    <p class="text-xs font-semibold text-gray-800 truncate max-w-[110px]">
+                <div class="ml-3 overflow-hidden min-w-0 flex-1">
+                    <p class="text-xs font-semibold text-gray-800 truncate">
                         {{ request.user.get_full_name|default:request.user.username }}
                     </p>
                     <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full {% if request.user.is_superuser or request.user.profile.is_admin %}bg-amber-400{% else %}bg-emerald-400{% endif %}"></span>
+                        <span class="inline-block w-1.5 h-1.5 rounded-full {% if request.user.is_superuser or request.user.profile.is_admin %}bg-amber-400{% else %}bg-emerald-400{% endif %} shrink-0"></span>
                         <span class="text-[10px] text-gray-500 capitalize truncate">
                             {% if request.user.is_superuser %}Admin{% else %}{{ request.user.profile.role.name|title|default:"User" }}{% endif %}
                         </span>
                         {% if request.user.profile.emp_id %}
-                        <span class="text-[9px] text-gray-400 font-mono">({{ request.user.profile.emp_id }})</span>
+                        <span class="text-[9px] text-gray-400 font-mono truncate">({{ request.user.profile.emp_id }})</span>
                         {% endif %}
                     </div>
                 </div>
-                <div class="ml-auto">
+                <div class="ml-auto shrink-0">
                     <a href="{% url 'logout' %}" class="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition inline-flex items-center justify-center" title="Sign Out">
                         <i class="fas fa-arrow-right-from-bracket text-xs"></i>
                     </a>
@@ -115,38 +168,41 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f8fafc] w-full">
-        <!-- Mobile Top Header -->
-        <header class="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm shrink-0 z-30">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 flex items-center justify-center">
-                    <img src="/media/image.png" alt="Logo" class="w-full h-full object-contain mix-blend-multiply">
-                </div>
-                <div>
-                    <h1 class="text-sm font-bold tracking-wide uppercase text-gray-800">Grievance Portal</h1>
-                </div>
-            </div>
-            <button onclick="toggleMobileMenu()" class="p-2 text-gray-600 hover:bg-gray-100 focus:outline-none rounded-lg transition">
-                <i class="fas fa-bars text-lg"></i>
-            </button>
-        </header>
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f8fafc] w-full min-w-0">
+        <!-- Top App Bar (Unified Responsive Header) -->
+        <header class="bg-white border-b border-gray-200 shadow-xs shrink-0 z-30">
+            <div class="px-3.5 sm:px-6 md:px-8 py-2.5 md:py-0 md:h-16 flex items-center justify-between gap-3">
+                <!-- Left: Hamburger & Brand on mobile / Page Title on desktop -->
+                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <button type="button" onclick="toggleMobileMenu()" aria-label="Open Navigation Menu" class="md:hidden p-2 -ml-1 text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-xl transition shrink-0">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                    
+                    <div class="md:hidden flex items-center gap-2 min-w-0">
+                        <img src="/media/image.png" alt="Logo" class="w-7 h-7 object-contain mix-blend-multiply shrink-0">
+                        <span class="text-xs font-bold tracking-wide uppercase text-gray-800 truncate">Grievance Portal</span>
+                    </div>
 
-        <!-- Header -->
-        <header class="h-16 bg-white shadow-sm hidden md:flex items-center justify-between px-8 border-b shrink-0 z-10">
-            <h2 class="text-xl font-bold text-gray-800 tracking-tight">{% block header %}Dashboard{% endblock %}</h2>
-            <div class="flex items-center gap-3">
-                {% block header_actions %}{% endblock %}
+                    <div class="hidden md:block">
+                        <h2 class="text-xl font-bold text-gray-800 tracking-tight">{% block header %}Dashboard{% endblock %}</h2>
+                    </div>
+                </div>
+
+                <!-- Right: Header Actions (Accessible on both Mobile & Desktop) -->
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                    {% block header_actions %}{% endblock %}
+                </div>
             </div>
         </header>
 
         <!-- Flash Messages -->
         {% if messages %}
-            <div class="px-8 mt-4 space-y-2">
+            <div class="px-3.5 sm:px-6 md:px-8 mt-3 space-y-2">
                 {% for message in messages %}
-                    <div class="p-3.5 text-sm rounded-xl flex items-center justify-between border {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200{% elif message.tags == 'error' %}bg-red-50 text-red-800 border-red-200{% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}" role="alert">
+                    <div class="p-3 text-sm rounded-xl flex items-center justify-between border {% if message.tags == 'success' %}bg-green-50 text-green-800 border-green-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-200{% elif message.tags == 'error' %}bg-red-50 text-red-800 border-red-200{% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}" role="alert">
                         <div class="flex items-center gap-2.5">
                             <i class="fas {% if message.tags == 'success' %}fa-circle-check text-green-600{% elif message.tags == 'warning' %}fa-triangle-exclamation text-amber-600{% elif message.tags == 'error' %}fa-circle-exclamation text-red-600{% else %}fa-circle-info text-blue-600{% endif %}"></i>
-                            <span class="font-medium">{{ message }}</span>
+                            <span class="font-medium text-xs sm:text-sm">{{ message }}</span>
                         </div>
                     </div>
                 {% endfor %}
@@ -154,7 +210,7 @@
         {% endif %}
 
         <!-- Content Area -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+        <div class="flex-1 overflow-y-auto p-3.5 sm:p-6 md:p-8">
             {% block content %}
             {% endblock %}
         </div>
@@ -166,24 +222,72 @@
         function toggleMobileMenu() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobile-sidebar-overlay');
+            if (!sidebar || !overlay) return;
             
-            if (sidebar.classList.contains('-translate-x-full')) {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
                 // Open menu
                 sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
                 overlay.classList.remove('hidden');
-                // slight delay to allow display block to apply before opacity transition
+                document.body.classList.add('overflow-hidden');
                 setTimeout(() => {
                     overlay.classList.remove('opacity-0');
                     overlay.classList.add('opacity-100');
                 }, 10);
             } else {
                 // Close menu
+                sidebar.classList.remove('translate-x-0');
                 sidebar.classList.add('-translate-x-full');
                 overlay.classList.remove('opacity-100');
                 overlay.classList.add('opacity-0');
+                document.body.classList.remove('overflow-hidden');
                 setTimeout(() => {
                     overlay.classList.add('hidden');
                 }, 300);
+            }
+        }
+
+        // Close mobile menu on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && sidebar.classList.contains('translate-x-0')) {
+                    toggleMobileMenu();
+                }
+            }
+        });
+
+        // Close mobile menu when user clicks a navigation link on mobile
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth < 768 && sidebar.classList.contains('translate-x-0')) {
+                            toggleMobileMenu();
+                        }
+                    });
+                });
+            }
+        });
+
+        function toggleReportsMenu() {
+            const submenu = document.getElementById('reports-submenu');
+            const chevron = document.getElementById('reports-menu-chevron');
+            if (!submenu) return;
+            if (submenu.classList.contains('hidden')) {
+                submenu.classList.remove('hidden');
+                if (chevron) {
+                    chevron.classList.add('rotate-180', 'text-emerald-700');
+                    chevron.classList.remove('text-gray-400');
+                }
+            } else {
+                submenu.classList.add('hidden');
+                if (chevron) {
+                    chevron.classList.remove('rotate-180', 'text-emerald-700');
+                    chevron.classList.add('text-gray-400');
+                }
             }
         }
     </script>
