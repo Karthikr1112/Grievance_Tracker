@@ -61,7 +61,10 @@ def food_waste_edit_view(request, pk):
     if request.method == 'POST':
         form = FoodWasteForm(request.POST, instance=entry, user=request.user)
         if form.is_valid():
-            form.save()
+            saved_entry = form.save(commit=False)
+            if not saved_entry.created_by:
+                saved_entry.created_by = entry.created_by or request.user
+            saved_entry.save()
             messages.success(request, f'Food waste log #{entry.id} updated successfully!')
             return redirect('food_waste_list')
         else:

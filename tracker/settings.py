@@ -27,6 +27,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://jeyarama.com',
+    'http://jeyarama.com',
+    'https://*.jeyarama.com',
+    'http://*.jeyarama.com',
+    'http://localhost:3003',
+    'http://127.0.0.1:3003',
+]
+
 
 # Application definition
 

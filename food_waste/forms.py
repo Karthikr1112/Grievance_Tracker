@@ -152,7 +152,7 @@ class FoodWasteForm(forms.ModelForm):
         self.fields['month'].choices = FoodWasteEntry.MONTH_CHOICES
 
         # Review choices with blank prompt
-        review_choices = [('', 'Select Review (Optional)')] + list(FoodWasteEntry.REVIEW_CHOICES)
+        review_choices = [('', 'Select Review')] + list(FoodWasteEntry.REVIEW_CHOICES)
         self.fields['breakfast_review'].choices = review_choices
         self.fields['lunch_review'].choices = review_choices
         self.fields['dinner_review'].choices = review_choices

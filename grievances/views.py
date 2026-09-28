@@ -365,9 +365,12 @@ def get_user_grievance_queryset(user):
     """
     Returns grievances scoped by user role:
     - Superuser / Admin (role.name == 'admin'): ALL records across all stores.
-    - HR (role.name == 'hr'): Records for their assigned stores. If no stores assigned, NO records.
+    - Regular users: ONLY their OWN records (created_by=user).
     """
     qs = Grievance.objects.select_related('store', 'enquiry_type', 'created_by')
+    if not user or not user.is_authenticated:
+        return qs.none()
+
     if user.is_superuser:
         return qs
 
@@ -375,13 +378,9 @@ def get_user_grievance_queryset(user):
     if profile and profile.is_admin:
         return qs
 
-    if profile and profile.role and profile.role.name.lower() == 'hr':
-        assigned_stores = profile.stores.all()
-        if assigned_stores.exists():
-            return qs.filter(store__in=assigned_stores)
+    # Regular non-admin users only see records created by themselves
+    return qs.filter(created_by=user)
 
-    # If role is neither admin nor hr (or HR has no stores), return none
-    return qs.none()
 
 
 @approved_user_required
@@ -449,13 +448,22 @@ def dashboard_view(request):
 
 
     colors = [
-        {'gradient': 'from-indigo-500 to-indigo-700', 'shadow': 'shadow-indigo-500/30', 'text': 'text-indigo-100'},
-        {'gradient': 'from-rose-500 to-rose-600', 'shadow': 'shadow-rose-500/30', 'text': 'text-rose-100'},
-        {'gradient': 'from-amber-400 to-amber-500', 'shadow': 'shadow-amber-500/30', 'text': 'text-amber-100'},
-        {'gradient': 'from-purple-500 to-purple-600', 'shadow': 'shadow-purple-500/30', 'text': 'text-purple-100'},
-        {'gradient': 'from-emerald-400 to-emerald-500', 'shadow': 'shadow-emerald-500/30', 'text': 'text-emerald-100'},
+        {'gradient': 'from-indigo-600 to-blue-700', 'shadow': 'shadow-indigo-500/30', 'text': 'text-indigo-100'},
+        {'gradient': 'from-rose-500 to-red-600', 'shadow': 'shadow-rose-500/30', 'text': 'text-rose-100'},
+        {'gradient': 'from-amber-500 to-orange-600', 'shadow': 'shadow-amber-500/30', 'text': 'text-amber-100'},
+        {'gradient': 'from-purple-600 to-violet-700', 'shadow': 'shadow-purple-500/30', 'text': 'text-purple-100'},
+        {'gradient': 'from-emerald-500 to-teal-700', 'shadow': 'shadow-emerald-500/30', 'text': 'text-emerald-100'},
+        {'gradient': 'from-cyan-500 to-blue-600', 'shadow': 'shadow-cyan-500/30', 'text': 'text-cyan-100'},
+        {'gradient': 'from-fuchsia-600 to-pink-600', 'shadow': 'shadow-fuchsia-500/30', 'text': 'text-fuchsia-100'},
+        {'gradient': 'from-teal-600 to-emerald-800', 'shadow': 'shadow-teal-500/30', 'text': 'text-teal-100'},
+        {'gradient': 'from-violet-600 to-purple-800', 'shadow': 'shadow-violet-500/30', 'text': 'text-violet-100'},
+        {'gradient': 'from-pink-500 to-rose-600', 'shadow': 'shadow-pink-500/30', 'text': 'text-pink-100'},
+        {'gradient': 'from-sky-500 to-indigo-600', 'shadow': 'shadow-sky-500/30', 'text': 'text-sky-100'},
+        {'gradient': 'from-orange-500 to-amber-600', 'shadow': 'shadow-orange-500/30', 'text': 'text-orange-100'},
     ]
     import random
+    random.shuffle(colors)
+
     # Food Waste Metrics for Dashboard
     from food_waste.views import get_user_food_waste_queryset
 
@@ -617,7 +625,7 @@ def grievance_list_view(request):
         writer.writerow([
             'S.No', 'Open Date', 'Emp ID', 'Emp Name', 'Designation', 'Department', 'Section', 'Store Name', 
             'Enquiry Type', 'Enquiry Received By', 'Enquiry Details', '1st Level', '2nd Level',
-            'Closed Date', 'Period Days', 'Created By', 'Created At', 'Current Status'
+            'Closed Date', 'Period Days', 'Closing Reason', 'Created By', 'Created At', 'Current Status'
         ])
         
         for i, g in enumerate(queryset):
@@ -631,6 +639,7 @@ def grievance_list_view(request):
                 g.second_level,
                 g.closed_date,
                 g.period_days,
+                g.closing_reason,
                 g.created_by.username if g.created_by else '',
                 g.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 g.get_current_status_display()
@@ -651,11 +660,10 @@ def grievance_list_view(request):
     if not request.user.is_superuser:
         profile = getattr(request.user, 'profile', None)
         if profile and not profile.is_admin:
-            role_name = profile.role.name.lower() if profile.role else 'hr'
-            if role_name == 'hr' and profile.stores.exists():
+            if profile.stores.exists():
                 stores_qs = profile.stores.filter(is_active=True)
             else:
-                stores_qs = Store.objects.none()
+                stores_qs = Store.objects.filter(is_active=True)
 
 
     colors = [
@@ -687,7 +695,10 @@ def grievance_update_view(request, pk):
     if request.method == 'POST':
         form = GrievanceForm(request.POST, instance=grievance, user=request.user)
         if form.is_valid():
-            form.save()
+            g = form.save(commit=False)
+            if not g.created_by:
+                g.created_by = grievance.created_by or request.user
+            g.save()
             messages.success(request, 'Grievance updated successfully!')
             return redirect('grievance_list')
     else:
@@ -698,13 +709,14 @@ def grievance_update_view(request, pk):
 
 @approved_user_required
 def grievance_delete_view(request, pk):
+    qs = get_user_grievance_queryset(request.user)
+    grievance = get_object_or_404(qs, pk=pk)
     profile = getattr(request.user, 'profile', None)
     is_admin = request.user.is_superuser or (profile and profile.is_admin)
-    if not is_admin:
+    if not is_admin and grievance.created_by != request.user:
         messages.error(request, 'You do not have permission to delete records.')
         return redirect('grievance_list')
         
-    grievance = get_object_or_404(Grievance, pk=pk)
     grievance.delete()
     messages.success(request, 'Grievance deleted successfully!')
     return redirect('grievance_list')

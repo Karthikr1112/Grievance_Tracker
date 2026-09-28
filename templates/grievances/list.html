@@ -110,6 +110,7 @@
                         <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">2nd Level</th>
                         <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">Closed Date</th>
                         <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">Period Days</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">Closing Reason</th>
                         <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">Created By</th>
                         <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">Created At</th>
                         <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-6 py-3.5 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">Current Status</th>
@@ -138,6 +139,7 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.second_level }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.closed_date|date:"d-m-Y"|default:"-" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.period_days|default:"-" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 min-w-[200px] max-w-[260px] truncate border-b border-gray-100" title="{{ g.closing_reason|default:'' }}">{{ g.closing_reason|default:"-" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-b border-gray-100">{{ g.created_by.username|default:"-" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.created_at|date:"d-m-Y H:i" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap border-b border-gray-100">

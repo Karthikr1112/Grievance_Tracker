@@ -86,6 +86,7 @@ class Grievance(TimeStampedModel):
     
     closed_date = models.DateField(null=True, blank=True)
     period_days = models.IntegerField(null=True, blank=True, help_text="Number of days taken to close")
+    closing_reason = models.TextField(blank=True, verbose_name="Closing Reason / Resolution Summary")
     
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_grievances')
     
@@ -103,6 +104,11 @@ class Grievance(TimeStampedModel):
             models.Index(fields=['current_status']),
         ]
         ordering = ['-open_date']
+
+    def save(self, *args, **kwargs):
+        if self.open_date and self.closed_date:
+            self.period_days = max(0, (self.closed_date - self.open_date).days)
+        super().save(*args, **kwargs)
         
     def __str__(self):
         return f"{self.emp_id} - {self.emp_name} - {self.open_date}"

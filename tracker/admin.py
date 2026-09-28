@@ -180,6 +180,7 @@ class GrievanceAdmin(admin.ModelAdmin):
                 'first_level',
                 'second_level',
                 ('closed_date', 'period_days'),
+                'closing_reason',
             )
         }),
         ('Audit Information', {

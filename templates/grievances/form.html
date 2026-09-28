@@ -237,6 +237,17 @@
                         {{ form.current_status }}
                         {% if form.current_status.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.current_status.errors.0 }}</p>{% endif %}
                     </div>
+
+                    <!-- Closing Reason / Resolution Summary (Dynamically shown when status is Closed) -->
+                    <div id="closing_reason_container" class="transition-all duration-300 {% if form.current_status.value != 'closed' %}hidden{% endif %}">
+                        <label for="{{ form.closing_reason.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-file-signature text-emerald-600"></i> Closing Reason & Resolution Summary <span class="text-red-500">*</span>
+                            <span class="ml-auto text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Required on Closure</span>
+                        </label>
+                        {{ form.closing_reason }}
+                        <p class="mt-1.5 text-xs text-slate-400">Detail the investigation findings, actions taken, and final outcome for closing this grievance.</p>
+                        {% if form.closing_reason.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.closing_reason.errors.0 }}</p>{% endif %}
+                    </div>
                 </div>
             </div>
 
@@ -286,6 +297,7 @@
                     <div>
                         <label for="{{ form.period_days.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
                             <i class="fas fa-stopwatch text-slate-400"></i> Period Days
+                            <span class="ml-auto text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Auto-calculated</span>
                         </label>
                         {{ form.period_days }}
                         {% if form.period_days.errors %}<p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.period_days.errors.0 }}</p>{% endif %}
@@ -546,6 +558,65 @@ document.addEventListener('DOMContentLoaded', function () {
     initDownwardDropdown('id_store', 'Search store / location...');
     initDownwardDropdown('id_enquiry_type', 'Search enquiry category...');
     initDownwardDropdown('id_current_status', 'Search status...');
+
+    // -------------------------------------------------------------
+    // Automatic Period Days Calculation & Closing Reason Visibility
+    // -------------------------------------------------------------
+    const openDateInput = document.getElementById('id_open_date');
+    const closedDateInput = document.getElementById('id_closed_date');
+    const periodDaysInput = document.getElementById('id_period_days');
+    const statusSelect = document.getElementById('id_current_status');
+    const closingReasonContainer = document.getElementById('closing_reason_container');
+
+    function calculatePeriodDays() {
+        if (!openDateInput || !closedDateInput || !periodDaysInput) return;
+        const openVal = openDateInput.value;
+        const closedVal = closedDateInput.value;
+
+        if (openVal && closedVal) {
+            const openDate = new Date(openVal);
+            const closedDate = new Date(closedVal);
+            const diffTime = closedDate - openDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (!isNaN(diffDays)) {
+                periodDaysInput.value = Math.max(0, diffDays);
+            }
+        }
+    }
+
+    function handleStatusChange() {
+        if (!statusSelect) return;
+        const isClosed = statusSelect.value === 'closed';
+
+        if (closingReasonContainer) {
+            if (isClosed) {
+                closingReasonContainer.classList.remove('hidden');
+            } else {
+                closingReasonContainer.classList.add('hidden');
+            }
+        }
+
+        // When status is set to closed, auto-set Closed Date to today if empty
+        if (isClosed && closedDateInput && !closedDateInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            closedDateInput.value = today;
+            calculatePeriodDays();
+        }
+    }
+
+    if (openDateInput) {
+        openDateInput.addEventListener('change', calculatePeriodDays);
+        openDateInput.addEventListener('input', calculatePeriodDays);
+    }
+    if (closedDateInput) {
+        closedDateInput.addEventListener('change', calculatePeriodDays);
+        closedDateInput.addEventListener('input', calculatePeriodDays);
+    }
+    if (statusSelect) {
+        statusSelect.addEventListener('change', handleStatusChange);
+        handleStatusChange();
+        calculatePeriodDays();
+    }
 });
 </script>
 {% endblock %}

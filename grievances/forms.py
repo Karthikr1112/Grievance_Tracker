@@ -8,7 +8,7 @@ class GrievanceForm(forms.ModelForm):
         fields = [
             'open_date', 'emp_id', 'emp_name', 'designation', 'department', 'section',
             'store', 'enquiry_type', 'enquiry_received_by', 'enquiry_details',
-            'first_level', 'second_level', 'closed_date', 'period_days', 'current_status'
+            'first_level', 'second_level', 'closed_date', 'period_days', 'current_status', 'closing_reason'
         ]
         widgets = {
             'open_date': forms.DateInput(attrs={
@@ -22,6 +22,11 @@ class GrievanceForm(forms.ModelForm):
             'enquiry_details': forms.Textarea(attrs={
                 'rows': 4,
                 'placeholder': 'Provide detailed facts, context, and specifics of the employee inquiry or complaint...',
+                'class': 'block w-full rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-sm text-gray-800 transition focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none'
+            }),
+            'closing_reason': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Provide closure reason, resolution summary, or actions taken...',
                 'class': 'block w-full rounded-xl border border-gray-200 bg-gray-50/50 p-4 text-sm text-gray-800 transition focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none'
             }),
             'emp_id': forms.TextInput(attrs={'placeholder': 'e.g. EMP-1048'}),
@@ -42,12 +47,17 @@ class GrievanceForm(forms.ModelForm):
         for field_name, field in self.fields.items():
             if 'class' not in field.widget.attrs:
                 field.widget.attrs['class'] = base_input_classes
+
+        # Auto-fill 'Enquiry Received By' with logged-in user's name for new grievances
+        if user and user.is_authenticated and not self.instance.pk:
+            display_name = user.get_full_name().strip() or user.username
+            self.fields['enquiry_received_by'].initial = display_name
                 
         # Filter stores based on user permissions
         store_qs = Store.objects.filter(is_active=True)
         if user and not user.is_superuser:
             profile = getattr(user, 'profile', None)
-            if profile and profile.role != 'admin':
+            if profile and not profile.is_admin:
                 assigned = profile.stores.filter(is_active=True)
                 # If user has assigned stores, restrict to them
                 if assigned.exists():
@@ -57,6 +67,27 @@ class GrievanceForm(forms.ModelForm):
         self.fields['store'].empty_label = "Select Store / Location"
         self.fields['enquiry_type'].queryset = EnquiryType.objects.filter(is_active=True)
         self.fields['enquiry_type'].empty_label = "Select Category / Type"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        open_date = cleaned_data.get('open_date')
+        closed_date = cleaned_data.get('closed_date')
+        current_status = cleaned_data.get('current_status')
+
+        # Automatically calculate period_days from open_date to closed_date
+        if open_date and closed_date:
+            if closed_date < open_date:
+                self.add_error('closed_date', 'Closed date cannot be earlier than open date.')
+            else:
+                cleaned_data['period_days'] = (closed_date - open_date).days
+        elif not closed_date and current_status == 'closed':
+            from django.utils import timezone
+            today = timezone.localdate()
+            cleaned_data['closed_date'] = today
+            if open_date:
+                cleaned_data['period_days'] = max(0, (today - open_date).days)
+
+        return cleaned_data
 
 
 class CustomUserCreationForm(forms.Form):
