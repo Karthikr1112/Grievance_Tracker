@@ -27,15 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://jeyarama.com',
-    'http://jeyarama.com',
-    'https://*.jeyarama.com',
-    'http://*.jeyarama.com',
-    'http://localhost:3003',
-    'http://127.0.0.1:3003',
-]
-
 
 # Application definition
 
@@ -141,10 +132,13 @@ LOGOUT_REDIRECT_URL = 'login'
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'stylehr-cache',
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379',
+        'KEY_PREFIX': 'stylehr_tracker',
+        'TIMEOUT': 30 * 86400,  # 30 days (2,592,000 seconds)
     }
 }
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

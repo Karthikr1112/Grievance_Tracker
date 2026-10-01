@@ -1,5 +1,124 @@
 {% extends 'grievances/base.html' %}
-{% block header %}Dashboard Analytics{% endblock %}
+
+{% block top_header %}
+<div class="px-3.5 sm:px-6 md:px-8 py-2 md:py-2.5 w-full flex flex-col justify-center">
+    <div class="flex flex-wrap lg:flex-nowrap items-center justify-between gap-2.5 w-full">
+        <!-- Mobile Sidebar Hamburger & Brand -->
+        <div class="flex md:hidden items-center gap-2 shrink-0">
+            <button type="button" onclick="toggleMobileMenu()" aria-label="Open Navigation Menu" class="p-2 -ml-1 text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-xl transition shrink-0">
+                <i class="fas fa-bars text-lg"></i>
+            </button>
+            <div class="flex items-center gap-1.5 min-w-0">
+                <img src="/media/image.png" alt="Logo" class="w-6 h-6 object-contain mix-blend-multiply shrink-0">
+                <span class="text-xs font-bold tracking-wide uppercase text-gray-800 truncate">Portal</span>
+            </div>
+        </div>
+
+        <!-- Filter Controls Form in Header (Replaces 'Dashboard Analytics') -->
+        <form method="GET" action="{% url 'dashboard' %}" id="dashboardFilterForm" class="flex-1 flex flex-wrap items-center gap-2 min-w-0">
+            <input type="hidden" name="preset" id="presetInput" value="{{ preset|default:'' }}">
+
+            <!-- Store Dropdown -->
+            <div class="shrink-0 w-36 sm:w-40 xl:w-44">
+                <select name="store" class="w-full text-xs bg-gray-50/90 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 font-medium text-gray-700 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition cursor-pointer">
+                    <option value="">All Stores</option>
+                    {% for s in stores %}
+                        <option value="{{ s.id }}" {% if selected_store_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date Range Inputs -->
+            <div class="shrink-0 flex items-center gap-1 bg-gray-50/90 border border-gray-200 rounded-xl px-2 py-1 focus-within:bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition text-xs">
+                <i class="far fa-calendar-alt text-gray-400 text-xs shrink-0"></i>
+                <input type="date" name="start_date" id="startDateInput" value="{{ start_date }}" class="bg-transparent border-none outline-none text-xs text-gray-700 w-28 p-0" title="Start Date">
+                <span class="text-gray-300 text-xs font-medium">to</span>
+                <input type="date" name="end_date" id="endDateInput" value="{{ end_date }}" class="bg-transparent border-none outline-none text-xs text-gray-700 w-28 p-0" title="End Date">
+            </div>
+
+            <!-- Status Dropdown -->
+            <div class="shrink-0 w-32 sm:w-36">
+                <select name="status" class="w-full text-xs bg-gray-50/90 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 font-medium text-gray-700 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition cursor-pointer">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                        <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Category / Enquiry Type Dropdown -->
+            <div class="shrink-0 w-36 sm:w-40 xl:w-44">
+                <select name="enquiry_type" class="w-full text-xs bg-gray-50/90 hover:bg-gray-100 border border-gray-200 rounded-xl px-2.5 py-1.5 font-medium text-gray-700 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition cursor-pointer">
+                    <option value="">All Categories</option>
+                    {% for et in enquiry_types %}
+                        <option value="{{ et.id }}" {% if selected_enquiry_type_id == et.id %}selected{% endif %}>{{ et.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Apply & Reset Buttons -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <button type="submit" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <i class="fas fa-filter text-[10px]"></i>
+                    <span>Apply</span>
+                </button>
+                {% if has_active_filters %}
+                <a href="{% url 'dashboard' %}" class="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition font-medium" title="Clear all filters">
+                    Reset
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Quick Date Presets -->
+            <div class="flex items-center gap-1 border-l border-gray-200 pl-2 ml-auto shrink-0">
+                <button type="button" onclick="setPreset('today')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer {% if preset == 'today' %}bg-blue-600 text-white shadow-xs{% else %}bg-gray-100 hover:bg-gray-200 text-gray-600{% endif %}">
+                    Today
+                </button>
+                <button type="button" onclick="setPreset('week')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer {% if preset == 'week' %}bg-blue-600 text-white shadow-xs{% else %}bg-gray-100 hover:bg-gray-200 text-gray-600{% endif %}">
+                    Week
+                </button>
+                <button type="button" onclick="setPreset('month')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer {% if preset == 'month' %}bg-blue-600 text-white shadow-xs{% else %}bg-gray-100 hover:bg-gray-200 text-gray-600{% endif %}">
+                    Month
+                </button>
+                <button type="button" onclick="setPreset('last30')" class="px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer {% if preset == 'last30' %}bg-blue-600 text-white shadow-xs{% else %}bg-gray-100 hover:bg-gray-200 text-gray-600{% endif %}">
+                    30 Days
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Active Filters Badge Row (when active) -->
+    {% if has_active_filters %}
+    <div class="flex flex-wrap items-center gap-1.5 pt-1.5 mt-1 border-t border-gray-100 text-xs">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mr-1">Active:</span>
+        {% if selected_store_name %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium text-[11px] border border-blue-200">
+            <span>Store: <strong>{{ selected_store_name }}</strong></span>
+        </span>
+        {% endif %}
+        {% if start_date or end_date %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium text-[11px] border border-emerald-200">
+            <i class="far fa-calendar-alt text-[9px]"></i>
+            <span>{{ start_date|default:"Start" }} to {{ end_date|default:"Today" }}</span>
+        </span>
+        {% endif %}
+        {% if selected_status_name %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-medium text-[11px] border border-purple-200">
+            <span>Status: <strong>{{ selected_status_name }}</strong></span>
+        </span>
+        {% endif %}
+        {% if selected_type_name %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium text-[11px] border border-amber-200">
+            <span>Category: <strong>{{ selected_type_name }}</strong></span>
+        </span>
+        {% endif %}
+        <a href="{% url 'dashboard' %}" class="ml-auto text-[11px] text-gray-400 hover:text-rose-600 font-medium transition flex items-center gap-1">
+            <i class="fas fa-times-circle text-[10px]"></i> Clear all
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock top_header %}
 
 {% block content %}
 <!-- 
@@ -11,13 +130,13 @@
 {{ kpi_colors.5.gradient }} {{ kpi_colors.5.shadow }} {{ kpi_colors.5.text }}
 {{ kpi_colors.6.gradient }} {{ kpi_colors.6.shadow }} {{ kpi_colors.6.text }}
 -->
-<div class="space-y-8 pb-12 pt-2">
+<div class="space-y-6 sm:space-y-8 pb-12 pt-1">
 
     <!-- KPIs (Grievances + Food Waste on Same Line) -->
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 xl:gap-5">
         
         <!-- Total -->
-        <a href="{% url 'grievance_list' %}" class="block bg-gradient-to-br {{ kpi_colors.0.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.0.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        <a href="{% url 'grievance_list' %}{% if selected_store or start_date or end_date or selected_enquiry_type %}?{% if selected_store %}store={{ selected_store }}&{% endif %}{% if start_date %}start_date={{ start_date }}&{% endif %}{% if end_date %}end_date={{ end_date }}&{% endif %}{% if selected_enquiry_type %}enquiry_type={{ selected_enquiry_type }}&{% endif %}{% endif %}" class="kpi-card block bg-gradient-to-br {{ kpi_colors.0.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.0.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div class="relative z-10 flex flex-col h-full justify-between">
                 <div class="flex items-center justify-between mb-2 sm:mb-3">
                     <p class="text-[10px] sm:text-xs font-bold {{ kpi_colors.0.text }} uppercase tracking-wider truncate">Total</p>
@@ -32,7 +151,7 @@
         </a>
 
         <!-- Open -->
-        <a href="{% url 'grievance_list' %}?status=open" class="block bg-gradient-to-br {{ kpi_colors.1.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.1.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        <a href="{% url 'grievance_list' %}?status=open{% if selected_store %}&store={{ selected_store }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if selected_enquiry_type %}&enquiry_type={{ selected_enquiry_type }}{% endif %}" class="kpi-card block bg-gradient-to-br {{ kpi_colors.1.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.1.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div class="relative z-10 flex flex-col h-full justify-between">
                 <div class="flex items-center justify-between mb-2 sm:mb-3">
                     <p class="text-[10px] sm:text-xs font-bold {{ kpi_colors.1.text }} uppercase tracking-wider truncate">Open</p>
@@ -47,7 +166,7 @@
         </a>
 
         <!-- Hold -->
-        <a href="{% url 'grievance_list' %}?status=hold" class="block bg-gradient-to-br {{ kpi_colors.2.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.2.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        <a href="{% url 'grievance_list' %}?status=hold{% if selected_store %}&store={{ selected_store }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if selected_enquiry_type %}&enquiry_type={{ selected_enquiry_type }}{% endif %}" class="kpi-card block bg-gradient-to-br {{ kpi_colors.2.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.2.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div class="relative z-10 flex flex-col h-full justify-between">
                 <div class="flex items-center justify-between mb-2 sm:mb-3">
                     <p class="text-[10px] sm:text-xs font-bold {{ kpi_colors.2.text }} uppercase tracking-wider truncate">On Hold</p>
@@ -62,7 +181,7 @@
         </a>
 
         <!-- Extension -->
-        <a href="{% url 'grievance_list' %}?status=extension" class="block bg-gradient-to-br {{ kpi_colors.3.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.3.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        <a href="{% url 'grievance_list' %}?status=extension{% if selected_store %}&store={{ selected_store }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if selected_enquiry_type %}&enquiry_type={{ selected_enquiry_type }}{% endif %}" class="kpi-card block bg-gradient-to-br {{ kpi_colors.3.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.3.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div class="relative z-10 flex flex-col h-full justify-between">
                 <div class="flex items-center justify-between mb-2 sm:mb-3">
                     <p class="text-[10px] sm:text-xs font-bold {{ kpi_colors.3.text }} uppercase tracking-wider truncate">Extension</p>
@@ -77,7 +196,7 @@
         </a>
 
         <!-- Closed -->
-        <a href="{% url 'grievance_list' %}?status=closed" class="block bg-gradient-to-br {{ kpi_colors.4.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.4.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        <a href="{% url 'grievance_list' %}?status=closed{% if selected_store %}&store={{ selected_store }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}{% if selected_enquiry_type %}&enquiry_type={{ selected_enquiry_type }}{% endif %}" class="kpi-card block bg-gradient-to-br {{ kpi_colors.4.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.4.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div class="relative z-10 flex flex-col h-full justify-between">
                 <div class="flex items-center justify-between mb-2 sm:mb-3">
                     <p class="text-[10px] sm:text-xs font-bold {{ kpi_colors.4.text }} uppercase tracking-wider truncate">Closed</p>
@@ -92,7 +211,7 @@
         </a>
 
         <!-- Total Food Received -->
-        <a href="{% url 'food_waste_list' %}" class="block bg-gradient-to-br {{ kpi_colors.5.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.5.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        <a href="{% url 'food_waste_list' %}{% if selected_fw_store_id or start_date or end_date %}?{% if selected_fw_store_id %}store={{ selected_fw_store_id }}&{% endif %}{% if start_date %}start_date={{ start_date }}&{% endif %}{% if end_date %}end_date={{ end_date }}&{% endif %}{% endif %}" class="kpi-card block bg-gradient-to-br {{ kpi_colors.5.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.5.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div class="relative z-10 flex flex-col h-full justify-between">
                 <div class="flex items-center justify-between mb-2 sm:mb-3">
                     <p class="text-[10px] sm:text-xs font-bold {{ kpi_colors.5.text }} uppercase tracking-wider truncate">Food Recv</p>
@@ -110,7 +229,7 @@
         </a>
 
         <!-- Total Food Waste -->
-        <a href="{% url 'food_waste_list' %}" class="block bg-gradient-to-br {{ kpi_colors.6.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.6.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        <a href="{% url 'food_waste_list' %}{% if selected_fw_store_id or start_date or end_date %}?{% if selected_fw_store_id %}store={{ selected_fw_store_id }}&{% endif %}{% if start_date %}start_date={{ start_date }}&{% endif %}{% if end_date %}end_date={{ end_date }}&{% endif %}{% endif %}" class="kpi-card block bg-gradient-to-br {{ kpi_colors.6.gradient }} rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl {{ kpi_colors.6.shadow }} p-3.5 sm:p-5 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div class="relative z-10 flex flex-col h-full justify-between">
                 <div class="flex items-center justify-between mb-2 sm:mb-3">
                     <p class="text-[10px] sm:text-xs font-bold {{ kpi_colors.6.text }} uppercase tracking-wider truncate">Food Waste</p>
@@ -127,6 +246,44 @@
             </div>
         </a>
     </div>
+
+    <!-- Dynamic KPI Color Randomizer (Always 7 completely distinct colors on every refresh) -->
+    <script>
+        (function() {
+            // 7 strictly distinct color families so NO TWO cards look alike:
+            const distinctFamilies = [
+                // 1. Purple
+                { bg: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', shadow: '0 14px 28px -4px rgba(124, 58, 237, 0.4)' },
+                // 2. Cyan / Sky Blue
+                { bg: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)', shadow: '0 14px 28px -4px rgba(2, 132, 199, 0.4)' },
+                // 3. Orange / Amber
+                { bg: 'linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)', shadow: '0 14px 28px -4px rgba(234, 88, 12, 0.4)' },
+                // 4. Emerald Green
+                { bg: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', shadow: '0 14px 28px -4px rgba(5, 150, 105, 0.4)' },
+                // 5. Crimson Red
+                { bg: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)', shadow: '0 14px 28px -4px rgba(220, 38, 38, 0.4)' },
+                // 6. Magenta / Hot Pink
+                { bg: 'linear-gradient(135deg, #db2777 0%, #f43f5e 100%)', shadow: '0 14px 28px -4px rgba(219, 39, 119, 0.4)' },
+                // 7. Royal Blue
+                { bg: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)', shadow: '0 14px 28px -4px rgba(29, 78, 216, 0.4)' }
+            ];
+
+            // Shuffle the 7 unique colors randomly across the 7 cards
+            const selectedPalette = [...distinctFamilies];
+            for (let i = selectedPalette.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [selectedPalette[i], selectedPalette[j]] = [selectedPalette[j], selectedPalette[i]];
+            }
+
+            const cards = document.querySelectorAll('.kpi-card');
+            cards.forEach((card, idx) => {
+                if (selectedPalette[idx]) {
+                    card.style.background = selectedPalette[idx].bg;
+                    card.style.boxShadow = selectedPalette[idx].shadow;
+                }
+            });
+        })();
+    </script>
 
     <!-- Row 1: Top Stores by Volume (Full-Length Single Bar Chart) -->
     <div class="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100 w-full">
@@ -671,6 +828,36 @@
                         }
                     }
                 }
+            });
+        }
+    });
+
+    function setPreset(p) {
+        const form = document.getElementById('dashboardFilterForm');
+        const presetInput = document.getElementById('presetInput');
+        const startInput = document.getElementById('startDateInput');
+        const endInput = document.getElementById('endDateInput');
+        if (!form || !presetInput) return;
+
+        if (presetInput.value === p) {
+            presetInput.value = '';
+        } else {
+            presetInput.value = p;
+        }
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+        form.submit();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const startInput = document.getElementById('startDateInput');
+        const endInput = document.getElementById('endDateInput');
+        const presetInput = document.getElementById('presetInput');
+        if (startInput && endInput && presetInput) {
+            [startInput, endInput].forEach(inp => {
+                inp.addEventListener('change', function() {
+                    presetInput.value = '';
+                });
             });
         }
     });

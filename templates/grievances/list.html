@@ -134,12 +134,12 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.enquiry_received_by }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-700 min-w-[250px] border-b border-gray-100">{{ g.enquiry_details }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 min-w-[250px] whitespace-normal break-words border-b border-gray-100">{{ g.enquiry_details }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.first_level }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.second_level }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.closed_date|date:"d-m-Y"|default:"-" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.period_days|default:"-" }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-700 min-w-[200px] max-w-[260px] truncate border-b border-gray-100" title="{{ g.closing_reason|default:'' }}">{{ g.closing_reason|default:"-" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 min-w-[220px] whitespace-normal break-words border-b border-gray-100" title="{{ g.closing_reason|default:'' }}">{{ g.closing_reason|default:"-" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-b border-gray-100">{{ g.created_by.username|default:"-" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100">{{ g.created_at|date:"d-m-Y H:i" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap border-b border-gray-100">

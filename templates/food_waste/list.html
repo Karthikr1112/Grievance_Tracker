@@ -13,30 +13,54 @@
 
 {% block content %}
 <style>
+    /* Prominent visible scrollbars matching reference */
     .sticky-table-container {
-        scrollbar-width: thin;
-        scrollbar-color: #cbd5e1 #f8fafc;
+        scrollbar-width: auto;
+        scrollbar-color: #64748b #f1f5f9;
     }
     .sticky-table-container::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 14px;
+        height: 14px;
     }
     .sticky-table-container::-webkit-scrollbar-track {
-        background: #f8fafc;
+        background: #f1f5f9;
     }
     .sticky-table-container::-webkit-scrollbar-thumb {
-        background-color: #cbd5e1;
+        background-color: #64748b;
         border-radius: 4px;
+        border: 2px solid #f1f5f9;
     }
     .sticky-table-container::-webkit-scrollbar-thumb:hover {
-        background-color: #94a3b8;
+        background-color: #475569;
+    }
+    .sticky-table-container::-webkit-scrollbar-button {
+        display: block;
+        width: 14px;
+        height: 14px;
+        background-color: #e2e8f0;
+    }
+    .sticky-table-container::-webkit-scrollbar-button:horizontal:decrement {
+        background: #e2e8f0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23475569' d='M10 3L4 8l6 5V3z'/%3E%3C/svg%3E") no-repeat center center;
+        background-size: 8px 8px;
+    }
+    .sticky-table-container::-webkit-scrollbar-button:horizontal:increment {
+        background: #e2e8f0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23475569' d='M6 3l6 5-6 5V3z'/%3E%3C/svg%3E") no-repeat center center;
+        background-size: 8px 8px;
+    }
+    .sticky-table-container::-webkit-scrollbar-button:vertical:decrement {
+        background: #e2e8f0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23475569' d='M3 10l5-6 5 6H3z'/%3E%3C/svg%3E") no-repeat center center;
+        background-size: 8px 8px;
+    }
+    .sticky-table-container::-webkit-scrollbar-button:vertical:increment {
+        background: #e2e8f0 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23475569' d='M3 6l5 6 5-6H3z'/%3E%3C/svg%3E") no-repeat center center;
+        background-size: 8px 8px;
     }
     .sticky-table-container thead th {
         position: sticky;
         top: 0;
         z-index: 20;
         background-color: #f8fafc !important;
-        box-shadow: inset 0 -1px 0 #e2e8f0;
+        box-shadow: inset 0 -1px 0 #cbd5e1, 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 </style>
 
@@ -144,44 +168,51 @@
     </div>
 
     <!-- Table Container -->
-    <div class="bg-white rounded-2xl sm:rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden flex flex-col">
-        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-sm sm:text-base font-bold text-gray-800 flex items-center gap-2">
-                <span>Food Waste Log Details</span>
-                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                    {{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}
-                </span>
-            </h3>
+    <!-- Main Table Area -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+        
+        <!-- Table Header Toolbar -->
+        <div class="px-4 sm:px-6 py-3.5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 bg-white shrink-0">
+            <h3 class="text-sm sm:text-base font-bold text-gray-800">Detailed Records</h3>
+            <span class="text-xs sm:text-sm text-gray-500 font-normal">Showing {{ page_obj.paginator.count|default:"0" }} entries</span>
         </div>
 
-        <div class="sticky-table-container overflow-x-auto min-h-[350px]">
-            <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                    <tr class="border-b border-gray-200 text-gray-600 uppercase tracking-wider text-[11px] font-bold">
-                        <th class="py-3 px-4">Date & Month</th>
-                        <th class="py-3 px-4">Store</th>
-                        <th class="py-3 px-4 min-w-[200px]">🍳 Breakfast</th>
-                        <th class="py-3 px-4 min-w-[200px]">🍛 Lunch</th>
-                        <th class="py-3 px-4 min-w-[200px]">🍲 Dinner</th>
-                        <th class="py-3 px-4 text-right">Total Recv</th>
-                        <th class="py-3 px-4 text-right">Total Waste</th>
-                        <th class="py-3 px-4 text-center">Waste %</th>
-                        <th class="py-3 px-4 whitespace-nowrap">Created By</th>
-                        <th class="py-3 px-4 whitespace-nowrap">Created At</th>
-                        <th class="py-3 px-4 text-center">Actions</th>
+        <!-- Scrollable Table Container with Sticky Headings & Footer Scrollbar -->
+        <div class="sticky-table-container h-[460px] sm:h-[480px] lg:h-[500px] min-h-[350px] overflow-x-auto overflow-y-auto relative">
+            <table class="w-max min-w-[2000px] border-separate border-spacing-0">
+                <thead class="sticky top-0 z-20 shadow-xs">
+                    <tr class="bg-gray-50">
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[70px]">#</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[140px]">Date &amp; Month</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[160px]">Store</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[230px]">🍳 Breakfast</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[230px]">🍛 Lunch</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[230px]">🍲 Dinner</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[270px]">Quality Remarks</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-right text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[120px]">Total Recv</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-right text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[120px]">Total Waste</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[110px]">Waste %</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[150px]">Created By</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[150px]">Created At</th>
+                        <th scope="col" class="sticky top-0 z-20 bg-gray-50 px-5 py-3.5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 min-w-[120px]">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 text-gray-700">
+                <tbody class="bg-white">
                     {% for entry in page_obj %}
-                    <tr class="hover:bg-emerald-50/30 transition">
+                    <tr class="hover:bg-blue-50/40 transition-colors">
+                        <!-- S.No -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-100 font-medium">
+                            {{ forloop.counter0|add:page_obj.start_index }}
+                        </td>
+
                         <!-- Date & Month -->
-                        <td class="py-3.5 px-4 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap border-b border-gray-100">
                             <div class="font-bold text-gray-900">{{ entry.date|date:"d M Y" }}</div>
                             <div class="text-[10px] text-gray-400 font-medium">{{ entry.month|default:entry.date|date:"F Y" }}</div>
                         </td>
 
                         <!-- Store -->
-                        <td class="py-3.5 px-4 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap border-b border-gray-100">
                             <span class="inline-flex items-center gap-1.5 font-semibold text-gray-800">
                                 <i class="fas fa-store text-emerald-600 text-[10px]"></i>
                                 {{ entry.store.name }}
@@ -189,9 +220,9 @@
                         </td>
 
                         <!-- Breakfast Column -->
-                        <td class="py-3.5 px-4">
+                        <td class="px-6 py-4 border-b border-gray-100">
                             {% if entry.breakfast_menu or entry.breakfast_received_kg or entry.breakfast_wastage_kg %}
-                                <div class="font-medium text-gray-900 truncate max-w-[220px]" title="{{ entry.breakfast_menu }}">
+                                <div class="font-medium text-gray-900 whitespace-normal break-words max-w-[220px]" title="{{ entry.breakfast_menu }}">
                                     {{ entry.breakfast_menu|default:"-" }}
                                 </div>
                                 <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5">
@@ -199,7 +230,7 @@
                                     <span>•</span>
                                     <span>Waste: <strong class="text-amber-700">{{ entry.breakfast_wastage_kg|default:"0" }} kg</strong></span>
                                 </div>
-                                <div class="flex items-center gap-1.5 mt-1">
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1">
                                     {% if entry.breakfast_shortage == 'yes' %}
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
                                             Shortage: {{ entry.breakfast_shortage_count|default:"Yes" }}
@@ -213,6 +244,11 @@
                                             {{ entry.get_breakfast_review_display }}
                                         </span>
                                     {% endif %}
+                                    {% if entry.breakfast_remarks %}
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200" title="{{ entry.breakfast_remarks }}">
+                                            <i class="far fa-comment-dots text-[9px]"></i> Remarks
+                                        </span>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 <span class="text-gray-300 italic text-[11px]">No data</span>
@@ -220,9 +256,9 @@
                         </td>
 
                         <!-- Lunch Column -->
-                        <td class="py-3.5 px-4">
+                        <td class="px-6 py-4 border-b border-gray-100">
                             {% if entry.lunch_menu or entry.lunch_received_kg or entry.lunch_wastage_kg %}
-                                <div class="font-medium text-gray-900 truncate max-w-[220px]" title="{{ entry.lunch_menu }}">
+                                <div class="font-medium text-gray-900 whitespace-normal break-words max-w-[220px]" title="{{ entry.lunch_menu }}">
                                     {{ entry.lunch_menu|default:"-" }}
                                 </div>
                                 <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5">
@@ -230,7 +266,7 @@
                                     <span>•</span>
                                     <span>Waste: <strong class="text-amber-700">{{ entry.lunch_wastage_kg|default:"0" }} kg</strong></span>
                                 </div>
-                                <div class="flex items-center gap-1.5 mt-1">
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1">
                                     {% if entry.lunch_shortage == 'yes' %}
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
                                             Shortage: {{ entry.lunch_shortage_count|default:"Yes" }}
@@ -244,6 +280,11 @@
                                             {{ entry.get_lunch_review_display }}
                                         </span>
                                     {% endif %}
+                                    {% if entry.lunch_remarks %}
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200" title="{{ entry.lunch_remarks }}">
+                                            <i class="far fa-comment-dots text-[9px]"></i> Remarks
+                                        </span>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 <span class="text-gray-300 italic text-[11px]">No data</span>
@@ -251,9 +292,9 @@
                         </td>
 
                         <!-- Dinner Column -->
-                        <td class="py-3.5 px-4">
+                        <td class="px-6 py-4 border-b border-gray-100">
                             {% if entry.dinner_menu or entry.dinner_received_kg or entry.dinner_wastage_kg %}
-                                <div class="font-medium text-gray-900 truncate max-w-[220px]" title="{{ entry.dinner_menu }}">
+                                <div class="font-medium text-gray-900 whitespace-normal break-words max-w-[220px]" title="{{ entry.dinner_menu }}">
                                     {{ entry.dinner_menu|default:"-" }}
                                 </div>
                                 <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5">
@@ -261,7 +302,7 @@
                                     <span>•</span>
                                     <span>Waste: <strong class="text-amber-700">{{ entry.dinner_wastage_kg|default:"0" }} kg</strong></span>
                                 </div>
-                                <div class="flex items-center gap-1.5 mt-1">
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1">
                                     {% if entry.dinner_shortage == 'yes' %}
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
                                             Shortage: {{ entry.dinner_shortage_count|default:"Yes" }}
@@ -275,24 +316,87 @@
                                             {{ entry.get_dinner_review_display }}
                                         </span>
                                     {% endif %}
+                                    {% if entry.dinner_remarks %}
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200" title="{{ entry.dinner_remarks }}">
+                                            <i class="far fa-comment-dots text-[9px]"></i> Remarks
+                                        </span>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 <span class="text-gray-300 italic text-[11px]">No data</span>
                             {% endif %}
                         </td>
 
+                        <!-- Quality Remarks Column -->
+                        <td class="px-6 py-4 min-w-[240px] max-w-[320px] border-b border-gray-100">
+                            {% if entry.breakfast_remarks or entry.lunch_remarks or entry.dinner_remarks %}
+                                <div class="space-y-1.5">
+                                    {% if entry.breakfast_remarks %}
+                                        <div class="text-[11px] bg-slate-50 border border-slate-200/80 rounded-lg p-2 shadow-2xs">
+                                            <div class="flex items-center gap-1.5 font-bold text-slate-700 mb-0.5">
+                                                <span>🍳 B'fast</span>
+                                                {% if entry.breakfast_review %}
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold
+                                                        {% if entry.breakfast_review == 'excellent' %}bg-green-100 text-green-800
+                                                        {% elif entry.breakfast_review == 'good' %}bg-blue-100 text-blue-800
+                                                        {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                                        {{ entry.get_breakfast_review_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="text-slate-600 whitespace-normal break-words leading-relaxed">{{ entry.breakfast_remarks }}</p>
+                                        </div>
+                                    {% endif %}
+                                    {% if entry.lunch_remarks %}
+                                        <div class="text-[11px] bg-slate-50 border border-slate-200/80 rounded-lg p-2 shadow-2xs">
+                                            <div class="flex items-center gap-1.5 font-bold text-slate-700 mb-0.5">
+                                                <span>🍛 Lunch</span>
+                                                {% if entry.lunch_review %}
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold
+                                                        {% if entry.lunch_review == 'excellent' %}bg-green-100 text-green-800
+                                                        {% elif entry.lunch_review == 'good' %}bg-blue-100 text-blue-800
+                                                        {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                                        {{ entry.get_lunch_review_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="text-slate-600 whitespace-normal break-words leading-relaxed">{{ entry.lunch_remarks }}</p>
+                                        </div>
+                                    {% endif %}
+                                    {% if entry.dinner_remarks %}
+                                        <div class="text-[11px] bg-slate-50 border border-slate-200/80 rounded-lg p-2 shadow-2xs">
+                                            <div class="flex items-center gap-1.5 font-bold text-slate-700 mb-0.5">
+                                                <span>🍲 Dinner</span>
+                                                {% if entry.dinner_review %}
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold
+                                                        {% if entry.dinner_review == 'excellent' %}bg-green-100 text-green-800
+                                                        {% elif entry.dinner_review == 'good' %}bg-blue-100 text-blue-800
+                                                        {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                                        {{ entry.get_dinner_review_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="text-slate-600 whitespace-normal break-words leading-relaxed">{{ entry.dinner_remarks }}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-gray-300 italic text-[11px]">No remarks</span>
+                            {% endif %}
+                        </td>
+
                         <!-- Total Received -->
-                        <td class="py-3.5 px-4 text-right font-bold text-gray-900 whitespace-nowrap">
+                        <td class="px-6 py-4 text-right font-bold text-gray-900 whitespace-nowrap border-b border-gray-100">
                             {{ entry.total_received_kg|floatformat:1 }} <span class="text-[10px] font-normal text-gray-400">kg</span>
                         </td>
 
                         <!-- Total Wastage -->
-                        <td class="py-3.5 px-4 text-right font-bold text-amber-700 whitespace-nowrap">
+                        <td class="px-6 py-4 text-right font-bold text-amber-700 whitespace-nowrap border-b border-gray-100">
                             {{ entry.total_wastage_kg|floatformat:1 }} <span class="text-[10px] font-normal text-gray-400">kg</span>
                         </td>
 
                         <!-- Wastage % -->
-                        <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                        <td class="px-6 py-4 text-center whitespace-nowrap border-b border-gray-100">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold 
                                 {% if entry.wastage_percentage > 20 %}bg-rose-100 text-rose-700
                                 {% elif entry.wastage_percentage > 10 %}bg-amber-100 text-amber-700
@@ -302,7 +406,7 @@
                         </td>
 
                         <!-- Created By -->
-                        <td class="py-3.5 px-4 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap border-b border-gray-100">
                             <div class="font-medium text-gray-800 flex items-center gap-1.5">
                                 <i class="far fa-user text-gray-400 text-xs"></i>
                                 <span>{{ entry.created_by.get_full_name|default:entry.created_by.username|default:"-" }}</span>
@@ -310,14 +414,17 @@
                         </td>
 
                         <!-- Created At -->
-                        <td class="py-3.5 px-4 whitespace-nowrap text-gray-500">
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500 border-b border-gray-100">
                             <div class="font-medium text-gray-700">{{ entry.created_at|date:"d M Y" }}</div>
                             <div class="text-[10px] text-gray-400 font-mono">{{ entry.created_at|date:"h:i A" }}</div>
                         </td>
 
                         <!-- Actions -->
-                        <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                        <td class="px-6 py-4 text-center whitespace-nowrap border-b border-gray-100">
                             <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="openDetailsModal('{{ entry.id }}')" class="p-1.5 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer" title="View Full Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                                 <a href="{% url 'food_waste_edit' entry.id %}" class="p-1.5 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition" title="Edit Log">
                                     <i class="fas fa-pen-to-square"></i>
                                 </a>
@@ -325,11 +432,122 @@
                                     <i class="fas fa-trash-can"></i>
                                 </a>
                             </div>
+
+                            <!-- Hidden details template for modal -->
+                            <template id="entry-data-{{ entry.id }}">
+                                <div class="space-y-4">
+                                    <!-- Header Info -->
+                                    <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                        <div>
+                                            <span class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Store</span>
+                                            <h4 class="text-sm font-bold text-gray-900 flex items-center gap-1.5 mt-0.5">
+                                                <i class="fas fa-store text-emerald-600"></i> {{ entry.store.name }}
+                                            </h4>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Date & Month</span>
+                                            <p class="text-xs font-bold text-gray-900 mt-0.5">{{ entry.date|date:"d M Y" }} ({{ entry.month|default:entry.date|date:"F Y" }})</p>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Overall Wastage %</span>
+                                            <p class="text-xs font-bold mt-0.5 {% if entry.wastage_percentage > 20 %}text-rose-600{% elif entry.wastage_percentage > 10 %}text-amber-600{% else %}text-emerald-600{% endif %}">
+                                                {{ entry.wastage_percentage }}%
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Meals Grid -->
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <!-- Breakfast -->
+                                        <div class="p-3.5 rounded-xl border border-gray-200 bg-white">
+                                            <div class="flex items-center justify-between pb-2 border-b border-gray-100 mb-2">
+                                                <span class="font-bold text-xs text-gray-800">🍳 Breakfast</span>
+                                                {% if entry.breakfast_review %}
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if entry.breakfast_review == 'excellent' %}bg-green-100 text-green-800{% elif entry.breakfast_review == 'good' %}bg-blue-100 text-blue-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                                                        {{ entry.get_breakfast_review_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-xs text-gray-800 font-semibold mb-2 whitespace-normal break-words">{{ entry.breakfast_menu|default:"No menu specified" }}</div>
+                                            <div class="text-[11px] text-gray-600 space-y-1">
+                                                <div class="flex justify-between"><span>Received:</span><strong class="text-gray-800">{{ entry.breakfast_received_kg|default:"0" }} kg</strong></div>
+                                                <div class="flex justify-between"><span>Wastage:</span><strong class="text-amber-700">{{ entry.breakfast_wastage_kg|default:"0" }} kg</strong></div>
+                                                <div class="flex justify-between"><span>Shortage:</span><strong class="text-gray-800">{% if entry.breakfast_shortage == 'yes' %}Yes ({{ entry.breakfast_shortage_count|default:"-" }}){% else %}No{% endif %}</strong></div>
+                                            </div>
+                                            {% if entry.breakfast_remarks %}
+                                                <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                                                    <strong class="block text-[10px] uppercase font-bold text-amber-800 mb-0.5">Remarks / Reason:</strong>
+                                                    <p class="whitespace-normal break-words">{{ entry.breakfast_remarks }}</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Lunch -->
+                                        <div class="p-3.5 rounded-xl border border-gray-200 bg-white">
+                                            <div class="flex items-center justify-between pb-2 border-b border-gray-100 mb-2">
+                                                <span class="font-bold text-xs text-gray-800">🍛 Lunch</span>
+                                                {% if entry.lunch_review %}
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if entry.lunch_review == 'excellent' %}bg-green-100 text-green-800{% elif entry.lunch_review == 'good' %}bg-blue-100 text-blue-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                                                        {{ entry.get_lunch_review_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-xs text-gray-800 font-semibold mb-2 whitespace-normal break-words">{{ entry.lunch_menu|default:"No menu specified" }}</div>
+                                            <div class="text-[11px] text-gray-600 space-y-1">
+                                                <div class="flex justify-between"><span>Received:</span><strong class="text-gray-800">{{ entry.lunch_received_kg|default:"0" }} kg</strong></div>
+                                                <div class="flex justify-between"><span>Wastage:</span><strong class="text-amber-700">{{ entry.lunch_wastage_kg|default:"0" }} kg</strong></div>
+                                                <div class="flex justify-between"><span>Shortage:</span><strong class="text-gray-800">{% if entry.lunch_shortage == 'yes' %}Yes ({{ entry.lunch_shortage_count|default:"-" }}){% else %}No{% endif %}</strong></div>
+                                            </div>
+                                            {% if entry.lunch_remarks %}
+                                                <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                                                    <strong class="block text-[10px] uppercase font-bold text-amber-800 mb-0.5">Remarks / Reason:</strong>
+                                                    <p class="whitespace-normal break-words">{{ entry.lunch_remarks }}</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Dinner -->
+                                        <div class="p-3.5 rounded-xl border border-gray-200 bg-white">
+                                            <div class="flex items-center justify-between pb-2 border-b border-gray-100 mb-2">
+                                                <span class="font-bold text-xs text-gray-800">🍲 Dinner</span>
+                                                {% if entry.dinner_review %}
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if entry.dinner_review == 'excellent' %}bg-green-100 text-green-800{% elif entry.dinner_review == 'good' %}bg-blue-100 text-blue-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                                                        {{ entry.get_dinner_review_display }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-xs text-gray-800 font-semibold mb-2 whitespace-normal break-words">{{ entry.dinner_menu|default:"No menu specified" }}</div>
+                                            <div class="text-[11px] text-gray-600 space-y-1">
+                                                <div class="flex justify-between"><span>Received:</span><strong class="text-gray-800">{{ entry.dinner_received_kg|default:"0" }} kg</strong></div>
+                                                <div class="flex justify-between"><span>Wastage:</span><strong class="text-amber-700">{{ entry.dinner_wastage_kg|default:"0" }} kg</strong></div>
+                                                <div class="flex justify-between"><span>Shortage:</span><strong class="text-gray-800">{% if entry.dinner_shortage == 'yes' %}Yes ({{ entry.dinner_shortage_count|default:"-" }}){% else %}No{% endif %}</strong></div>
+                                            </div>
+                                            {% if entry.dinner_remarks %}
+                                                <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                                                    <strong class="block text-[10px] uppercase font-bold text-amber-800 mb-0.5">Remarks / Reason:</strong>
+                                                    <p class="whitespace-normal break-words">{{ entry.dinner_remarks }}</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Footer Summary -->
+                                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 pt-2 border-t border-gray-100">
+                                        <div>
+                                            Total Recv: <strong class="text-gray-800">{{ entry.total_received_kg|floatformat:1 }} kg</strong> • 
+                                            Total Waste: <strong class="text-amber-700">{{ entry.total_wastage_kg|floatformat:1 }} kg</strong>
+                                        </div>
+                                        <div>
+                                            Logged by <strong class="text-gray-800">{{ entry.created_by.get_full_name|default:entry.created_by.username|default:"-" }}</strong> on {{ entry.created_at|date:"d M Y, h:i A" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="11" class="py-12 text-center text-gray-400">
+                        <td colspan="13" class="px-6 py-12 text-center text-gray-500 border-b border-gray-100">
                             <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl text-gray-400">
                                 <i class="fas fa-utensils"></i>
                             </div>
@@ -346,18 +564,20 @@
         </div>
 
         <!-- Pagination Footer -->
-        <div class="bg-white px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100">
-            <div class="flex items-center gap-3 text-xs sm:text-sm text-gray-500">
-                {% if page_obj.paginator.count > 0 %}
-                    <span>Showing <strong class="text-gray-800 font-semibold">{{ page_obj.start_index }}</strong> - <strong class="text-gray-800 font-semibold">{{ page_obj.end_index }}</strong> of <strong class="text-gray-800 font-semibold">{{ page_obj.paginator.count }}</strong> entries</span>
-                {% else %}
-                    <span>Showing 0 entries</span>
-                {% endif %}
+        <div class="bg-white px-4 sm:px-6 py-3 sm:py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200 shrink-0">
+            <div class="flex items-center gap-3">
+                <p class="text-xs sm:text-sm text-gray-500 font-normal">
+                    {% if page_obj.paginator.count > 0 %}
+                    Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+                    {% else %}
+                    Showing 0 entries
+                    {% endif %}
+                </p>
                 
                 <!-- Per page selector -->
                 <div class="hidden sm:flex items-center gap-1.5 ml-2 border-l border-gray-200 pl-3">
                     <span class="text-xs text-gray-400">Per page:</span>
-                    <select onchange="changePerPage(this.value)" class="text-xs rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-gray-700 outline-none focus:border-emerald-500 focus:bg-white transition cursor-pointer">
+                    <select onchange="changePerPage(this.value)" class="text-xs rounded-md border border-gray-300 bg-white px-2 py-1 text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition cursor-pointer">
                         <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
                         <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
                         <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
@@ -367,43 +587,66 @@
             </div>
 
             {% if page_obj.has_other_pages %}
-            <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
+            <div class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
                 <!-- First & Previous -->
                 {% if page_obj.has_previous %}
-                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page=1&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 inline-flex items-center justify-center text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-emerald-700 transition shadow-xs" title="First Page">
-                    <i class="fas fa-angles-left text-[10px]"></i>
+                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page=1&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 sm:px-3.5 inline-flex items-center justify-center text-xs sm:text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm" title="First Page">
+                    First
                 </a>
-                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 inline-flex items-center justify-center text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-emerald-700 transition shadow-xs" title="Previous Page">
-                    <i class="fas fa-chevron-left text-[10px] mr-1"></i> Prev
+                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 sm:px-3.5 inline-flex items-center justify-center text-xs sm:text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm" title="Previous Page">
+                    Previous
                 </a>
                 {% endif %}
 
-                <!-- Numbered Page Pills -->
-                {% for p in page_obj.paginator.page_range %}
-                    {% if p >= page_obj.number|add:"-2" and p <= page_obj.number|add:"2" %}
-                        {% if p == page_obj.number %}
-                            <span class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-3 inline-flex items-center justify-center text-xs font-bold text-white bg-emerald-600 rounded-xl shadow-sm shadow-emerald-600/20">
-                                {{ p }}
-                            </span>
-                        {% else %}
-                            <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ p }}&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-3 inline-flex items-center justify-center text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition shadow-xs">
-                                {{ p }}
-                            </a>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
+                <!-- Active Page Number Button -->
+                <span class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 sm:px-3.5 inline-flex items-center justify-center text-xs sm:text-sm font-bold text-white bg-blue-600 rounded-md shadow-sm">
+                    {{ page_obj.number }}
+                </span>
 
                 <!-- Next & Last -->
                 {% if page_obj.has_next %}
-                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 inline-flex items-center justify-center text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-emerald-700 transition shadow-xs" title="Next Page">
-                    Next <i class="fas fa-chevron-right text-[10px] ml-1"></i>
+                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 sm:px-3.5 inline-flex items-center justify-center text-xs sm:text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm" title="Next Page">
+                    Next
                 </a>
-                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.paginator.num_pages }}&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 inline-flex items-center justify-center text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-emerald-700 transition shadow-xs" title="Last Page">
-                    <i class="fas fa-angles-right text-[10px]"></i>
+                <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.paginator.num_pages }}&per_page={{ per_page }}" class="min-w-[32px] sm:min-w-[36px] h-8 sm:h-9 px-2.5 sm:px-3.5 inline-flex items-center justify-center text-xs sm:text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors shadow-sm" title="Last Page">
+                    Last
                 </a>
                 {% endif %}
             </div>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Food Waste Details Modal -->
+<div id="foodWasteDetailsModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-100 w-full max-w-3xl overflow-hidden transform transition-all">
+        <!-- Modal Header -->
+        <div class="px-5 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-emerald-600 to-teal-700 text-white">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-sm">
+                    <i class="fas fa-clipboard-list text-white"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm sm:text-base font-bold text-white">Food Waste Log & Quality Details</h3>
+                    <p class="text-[11px] text-emerald-100">Complete meal review, shortage, and feedback remarks</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDetailsModal()" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer" title="Close">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-5 sm:p-6 max-h-[calc(85vh-120px)] overflow-y-auto" id="modalDetailsContent">
+            <!-- Dynamically populated from template -->
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-5 sm:px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex justify-end">
+            <button type="button" onclick="closeDetailsModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold rounded-xl transition cursor-pointer">
+                Close
+            </button>
         </div>
     </div>
 </div>
@@ -424,5 +667,40 @@
         url.searchParams.set('page', '1');
         window.location.href = url.toString();
     }
+
+    function openDetailsModal(id) {
+        const template = document.getElementById('entry-data-' + id);
+        const content = document.getElementById('modalDetailsContent');
+        const modal = document.getElementById('foodWasteDetailsModal');
+        if (template && content && modal) {
+            content.innerHTML = template.innerHTML;
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+    }
+
+    function closeDetailsModal() {
+        const modal = document.getElementById('foodWasteDetailsModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('foodWasteDetailsModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeDetailsModal();
+                }
+            });
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailsModal();
+            }
+        });
+    });
 </script>
 {% endblock %}

@@ -1,5 +1,6 @@
 import csv
 import json
+import random
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from functools import wraps
@@ -15,6 +16,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, Sum
 from django.http import HttpResponse
+from django.utils import timezone
 
 from .forms import GrievanceForm, CustomUserCreationForm, CustomUserEditForm
 from .models import Grievance, Store, EnquiryType, Role, UserProfile
@@ -386,7 +388,77 @@ def get_user_grievance_queryset(user):
 @approved_user_required
 def dashboard_view(request):
     qs = get_user_grievance_queryset(request.user)
-        
+    from food_waste.views import get_user_food_waste_queryset
+    fw_qs = get_user_food_waste_queryset(request.user)
+
+    # Filter parameters
+    store_id = request.GET.get('store', '').strip()
+    status = request.GET.get('status', '').strip()
+    enquiry_type_id = request.GET.get('enquiry_type', '').strip()
+    start_date = request.GET.get('start_date', '').strip()
+    end_date = request.GET.get('end_date', '').strip()
+    preset = request.GET.get('preset', '').strip()
+
+    # Preset calculation
+    today = timezone.localdate()
+    if preset == 'today':
+        start_date = today.strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+    elif preset == 'yesterday':
+        yest = today - timedelta(days=1)
+        start_date = yest.strftime("%Y-%m-%d")
+        end_date = yest.strftime("%Y-%m-%d")
+    elif preset == 'week':
+        start_date = (today - timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+    elif preset == 'month':
+        start_date = today.replace(day=1).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+    elif preset == 'last30':
+        start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+    elif preset == 'year':
+        start_date = today.replace(month=1, day=1).strftime("%Y-%m-%d")
+        end_date = today.strftime("%Y-%m-%d")
+
+    # Apply Store filter
+    selected_store = None
+    selected_fw_store_id = None
+    if store_id:
+        try:
+            selected_store = Store.objects.filter(id=store_id).first()
+            if selected_store:
+                qs = qs.filter(store=selected_store)
+                from food_waste.models import FoodWasteStore
+                fw_store = FoodWasteStore.objects.filter(name__iexact=selected_store.name).first()
+                if fw_store:
+                    selected_fw_store_id = fw_store.id
+                    fw_qs = fw_qs.filter(store=fw_store)
+                else:
+                    fw_qs = fw_qs.filter(store__name__iexact=selected_store.name)
+        except Exception:
+            pass
+
+    # Apply Status filter
+    if status:
+        qs = qs.filter(current_status=status)
+
+    # Apply Category / Enquiry Type filter
+    if enquiry_type_id:
+        try:
+            qs = qs.filter(enquiry_type_id=enquiry_type_id)
+        except Exception:
+            pass
+
+    # Apply Date Range filter
+    if start_date:
+        qs = qs.filter(open_date__gte=start_date)
+        fw_qs = fw_qs.filter(date__gte=start_date)
+
+    if end_date:
+        qs = qs.filter(open_date__lte=end_date)
+        fw_qs = fw_qs.filter(date__lte=end_date)
+
     total_count = qs.count()
     open_count = qs.filter(current_status='open').count()
     hold_count = qs.filter(current_status='hold').count()
@@ -446,28 +518,18 @@ def dashboard_view(request):
         'month': {'labels': month_labels, 'data': month_data, 'title': 'Monthly Grievances Volume Trend', 'subtitle': 'Monthly Historical Trend'}
     }
 
-
     colors = [
-        {'gradient': 'from-indigo-600 to-blue-700', 'shadow': 'shadow-indigo-500/30', 'text': 'text-indigo-100'},
-        {'gradient': 'from-rose-500 to-red-600', 'shadow': 'shadow-rose-500/30', 'text': 'text-rose-100'},
-        {'gradient': 'from-amber-500 to-orange-600', 'shadow': 'shadow-amber-500/30', 'text': 'text-amber-100'},
-        {'gradient': 'from-purple-600 to-violet-700', 'shadow': 'shadow-purple-500/30', 'text': 'text-purple-100'},
-        {'gradient': 'from-emerald-500 to-teal-700', 'shadow': 'shadow-emerald-500/30', 'text': 'text-emerald-100'},
-        {'gradient': 'from-cyan-500 to-blue-600', 'shadow': 'shadow-cyan-500/30', 'text': 'text-cyan-100'},
-        {'gradient': 'from-fuchsia-600 to-pink-600', 'shadow': 'shadow-fuchsia-500/30', 'text': 'text-fuchsia-100'},
-        {'gradient': 'from-teal-600 to-emerald-800', 'shadow': 'shadow-teal-500/30', 'text': 'text-teal-100'},
-        {'gradient': 'from-violet-600 to-purple-800', 'shadow': 'shadow-violet-500/30', 'text': 'text-violet-100'},
-        {'gradient': 'from-pink-500 to-rose-600', 'shadow': 'shadow-pink-500/30', 'text': 'text-pink-100'},
-        {'gradient': 'from-sky-500 to-indigo-600', 'shadow': 'shadow-sky-500/30', 'text': 'text-sky-100'},
-        {'gradient': 'from-orange-500 to-amber-600', 'shadow': 'shadow-orange-500/30', 'text': 'text-orange-100'},
+        {'gradient': 'from-purple-600 to-violet-700', 'shadow': 'shadow-purple-500/25', 'text': 'text-purple-100'},  # Purple
+        {'gradient': 'from-cyan-500 to-sky-600', 'shadow': 'shadow-cyan-500/25', 'text': 'text-cyan-100'},            # Cyan
+        {'gradient': 'from-amber-500 to-orange-600', 'shadow': 'shadow-orange-500/25', 'text': 'text-orange-100'},      # Orange
+        {'gradient': 'from-emerald-500 to-teal-600', 'shadow': 'shadow-emerald-500/25', 'text': 'text-emerald-100'},  # Green
+        {'gradient': 'from-rose-500 to-red-600', 'shadow': 'shadow-rose-500/25', 'text': 'text-rose-100'},             # Red
+        {'gradient': 'from-pink-500 to-fuchsia-600', 'shadow': 'shadow-pink-500/25', 'text': 'text-pink-100'},         # Pink
+        {'gradient': 'from-blue-600 to-indigo-700', 'shadow': 'shadow-blue-500/25', 'text': 'text-blue-100'},          # Blue
     ]
-    import random
     random.shuffle(colors)
 
     # Food Waste Metrics for Dashboard
-    from food_waste.views import get_user_food_waste_queryset
-
-    fw_qs = get_user_food_waste_queryset(request.user)
     fw_agg = fw_qs.aggregate(
         b_recv=Sum('breakfast_received_kg'),
         l_recv=Sum('lunch_received_kg'),
@@ -535,6 +597,19 @@ def dashboard_view(request):
     fw_store_received_data = [s['recv'] for s in top_store_fw]
     fw_store_waste_data = [s['waste'] for s in top_store_fw]
 
+    stores = Store.objects.filter(is_active=True).order_by('name')
+    enquiry_types = EnquiryType.objects.filter(is_active=True).order_by('name')
+    status_choices = Grievance.STATUS_CHOICES
+    selected_store_id = int(store_id) if store_id and store_id.isdigit() else None
+    selected_enquiry_type_id = int(enquiry_type_id) if enquiry_type_id and enquiry_type_id.isdigit() else None
+
+    active_filters_count = sum([
+        1 if selected_store_id else 0,
+        1 if status else 0,
+        1 if selected_enquiry_type_id else 0,
+        1 if (start_date or end_date) else 0,
+    ])
+
     context = {
         'total_count': total_count,
         'open_count': open_count,
@@ -568,6 +643,24 @@ def dashboard_view(request):
         'fw_meal_received_data': fw_meal_received_data,
         'fw_meal_waste_data': fw_meal_waste_data,
         'fw_meal_pct_data': fw_meal_pct_data,
+        # Filters
+        'stores': stores,
+        'enquiry_types': enquiry_types,
+        'status_choices': status_choices,
+        'selected_store': store_id,
+        'selected_store_id': selected_store_id,
+        'selected_store_name': selected_store.name if selected_store else '',
+        'selected_fw_store_id': selected_fw_store_id,
+        'selected_status': status,
+        'selected_status_name': dict(Grievance.STATUS_CHOICES).get(status, '') if status else '',
+        'selected_enquiry_type': enquiry_type_id,
+        'selected_enquiry_type_id': selected_enquiry_type_id,
+        'selected_type_name': EnquiryType.objects.filter(id=selected_enquiry_type_id).values_list('name', flat=True).first() if selected_enquiry_type_id else '',
+        'start_date': start_date,
+        'end_date': end_date,
+        'preset': preset,
+        'has_active_filters': bool(active_filters_count > 0 or preset),
+        'active_filters_count': active_filters_count,
     }
     return render(request, 'grievances/dashboard.html', context)
 
